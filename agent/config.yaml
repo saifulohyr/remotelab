@@ -1,0 +1,18 @@
+# SIMLab Agent Configuration
+agent:
+  version: "1.0.0"
+  telemetry_interval: 15   # seconds between telemetry reports
+  log_level: "info"
+
+mqtt:
+  broker_host: "192.168.1.100"  # Change to your MQTT broker IP
+  broker_port: 8883
+  username: "agent-lab1-pc01"   # Unique per agent
+  password: "changeme"          # Unique per agent
+  use_tls: true
+  ca_cert_path: ""              # Path to CA certificate for TLS validation
+  keep_alive: 10                # seconds (LWT triggers after 1.5x this)
+
+lab:
+  lab_id: "lab1"                # Lab identifier
+  pc_id: "pc01"                 # PC identifier within lab

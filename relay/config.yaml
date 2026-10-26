@@ -1,0 +1,13 @@
+# SIMLab WoL Relay Configuration
+mqtt:
+  broker_host: "192.168.1.100"
+  broker_port: 8883
+  username: "relay-lab1"
+  password: "changeme"
+  use_tls: true
+
+relay:
+  lab_id: "lab1"
+  retries_per_pc: 3             # magic packets per PC
+  delay_between_pc_ms: 1500     # ms between PCs to avoid power surge
+  heartbeat_sec: 30             # seconds between heartbeat

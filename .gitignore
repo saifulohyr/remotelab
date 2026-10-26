@@ -1,0 +1,54 @@
+# ============================
+# SIMLab / RemoteLab .gitignore
+# ============================
+
+# ── Go binaries ────────────────────────────────────────────────────────────
+agent/simlab-agent
+agent/agent
+relay/simlab-relay
+worker/simlab-worker
+
+# Go build cache
+*.test
+*.out
+
+# ── Laravel / PHP ───────────────────────────────────────────────────────────
+server/vendor/
+server/node_modules/
+server/.env
+server/.env.backup
+server/storage/logs/*.log
+server/storage/framework/cache/data/*
+server/storage/framework/sessions/*
+server/storage/framework/views/*
+server/storage/app/public/*
+server/bootstrap/cache/*.php
+!server/bootstrap/cache/.gitignore
+server/database/database.sqlite
+server/database/database.sqlite-shm
+server/database/database.sqlite-wal
+
+# ── Dashboard / Node ────────────────────────────────────────────────────────
+dashboard/node_modules/
+dashboard/dist/
+dashboard/.env
+
+# ── Mosquitto TLS certs (sensitive) ─────────────────────────────────────────
+mosquitto/certs/*.pem
+mosquitto/certs/*.key
+mosquitto/certs/*.crt
+mosquitto/certs/*.p12
+mosquitto/passwd
+
+# ── OS / Editor ─────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+*.code-workspace
+
+# ── Secrets & Local config ───────────────────────────────────────────────────
+*.local
+.env.production
