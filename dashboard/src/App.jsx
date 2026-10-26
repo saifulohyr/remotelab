@@ -32,6 +32,8 @@ export default function App() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [toastMessage, setToastMessage] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isAutoSync, setIsAutoSync] = useState(true);
 
   // Initialize data
   useEffect(() => {
@@ -52,6 +54,34 @@ export default function App() {
       fetchLabPcs(selectedLabId);
     }
   }, [selectedLabId]);
+
+  // Smart polling interval for live real-time sync (Phase 2)
+  useEffect(() => {
+    if (!isAutoSync) return;
+
+    const interval = setInterval(() => {
+      // Pause polling if tab is in background or hidden
+      if (document.hidden || document.visibilityState === 'hidden') return;
+
+      if (selectedLabId) {
+        api.getLabPcs(selectedLabId)
+          .then((res) => {
+            if (res?.data) {
+              setPcs(res.data);
+            }
+          })
+          .catch(() => {});
+      }
+
+      api.getUnreadCount()
+        .then((res) => {
+          if (res?.unread_count !== undefined) setUnreadCount(res.unread_count);
+        })
+        .catch(() => {});
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [isAutoSync, selectedLabId]);
 
   const fetchInitialData = async () => {
     try {
@@ -167,6 +197,15 @@ export default function App() {
   const onlineCount = labs.reduce((sum, l) => sum + (l.online_count || 28), 0) || 166;
   const offlineCount = Math.max(0, totalPcs - onlineCount);
 
+  // Filtered PCs for search
+  const filteredPcs = searchQuery.trim()
+    ? pcs.filter((pc) =>
+        (pc.hostname || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (pc.ip_address || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (pc.mac_address || '').toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : pcs;
+
   return (
     <div className="flex bg-[#F8FAFC] min-h-screen font-sans text-slate-800 antialiased">
       {/* Sidebar */}
@@ -186,6 +225,10 @@ export default function App() {
           notifications={notifications}
           unreadCount={unreadCount}
           onRefreshNotifications={fetchInitialData}
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          isAutoSync={isAutoSync}
+          onToggleAutoSync={setIsAutoSync}
         />
 
         <main className="p-8 max-w-7xl w-full mx-auto space-y-8 flex-1">
@@ -244,7 +287,7 @@ export default function App() {
                   labs={labs}
                   selectedLabId={selectedLabId}
                   onSelectLab={(id) => setSelectedLabId(id)}
-                  pcs={pcs}
+                  pcs={filteredPcs}
                   onOpenPcDetail={(id) => setActivePcDetailId(id)}
                   selectedPcIds={selectedPcIds}
                   onToggleSelectPc={handleToggleSelectPc}
@@ -290,7 +333,7 @@ export default function App() {
                 labs={labs}
                 selectedLabId={selectedLabId}
                 onSelectLab={(id) => setSelectedLabId(id)}
-                pcs={pcs}
+                pcs={filteredPcs}
                 onOpenPcDetail={(id) => setActivePcDetailId(id)}
                 selectedPcIds={selectedPcIds}
                 onToggleSelectPc={handleToggleSelectPc}
