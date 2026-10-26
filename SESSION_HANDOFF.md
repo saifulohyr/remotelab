@@ -199,76 +199,45 @@ Below is the complete, granular task list of what **has not been implemented yet
 
 ---
 
-### 🔲 Phase 1: Dashboard Frontend (`dashboard/` directory)
-The dashboard directory is currently unbuilt. It needs a responsive, modern SPA with dark mode aesthetics (Inter font, slate/zinc palette, glassmorphism card styling, micro-animations).
+### ✅ Phase 1: Dashboard Frontend (`dashboard/` directory) [SELESAI]
+Direktori dashboard selesai dibangun menggunakan React + Vite + Tailwind CSS + Framer Motion (Style referensi: Dashboard V14 — Modern & Minimal UI oleh @code.xr).
 
-- [ ] **1.1 Project Setup & Base Design System**:
-  - Setup Vite or Vanilla HTML/CSS/JS in `dashboard/`.
-  - Create `index.html`, `index.css`, `app.js`, and `api.js` (API client with Bearer token injection and error handling).
-  - Design system tokens: CSS variables for colors, typography, border-radius, shadows, card glassmorphism.
-- [ ] **1.2 Authentication & State Management**:
-  - Login view (`#view-login`) with email & password inputs, remember me, error banners.
-  - Call `POST /api/login`, store token in `localStorage`, fetch user profile via `GET /api/me`.
-  - Role-aware navigation: display operator's assigned labs vs superadmin's global access.
-  - Logout handler (`POST /api/logout`) with token revocation.
-- [ ] **1.3 Lab Monitoring Matrix View**:
-  - Lab selection tabs/dropdown (`GET /api/labs`).
-  - Lab summary cards: Total PCs, Online count, Offline count, Busy count, Error count.
-  - Interactive PC Grid (30 PC nodes arranged in lab layout rows/columns):
-    - Color-coded status badges: 🟢 Online, ⚪ Offline, 🟠 Busy, 🔴 Error/Alert.
-    - Quick tooltip showing Hostname, IP, active user, and CPU/RAM load.
-- [ ] **1.4 PC Detail & Telemetry Modal**:
-  - Click on any PC card to open detail drawer/modal (`GET /api/pcs/{id}`).
-  - Live metric gauges (CPU %, RAM %, Disk %).
-  - System info panel: Hostname, MAC Address, IP Address, OS, Uptime, Agent version.
-  - Recent Power Events table (`GET /api/pcs/{id}/events`).
-  - Historical Metrics chart/timeseries (`GET /api/pcs/{id}/metrics?range=24h`).
-- [ ] **1.5 Remote Command Control Center**:
-  - Command trigger modal accessible from single PC, selected PCs, or entire Lab:
-    - Actions: `Shutdown`, `Restart`, `Lock Screen`, `Logoff User`, `Wake on LAN (WoL)`, `Send Message Alert`, `Execute Script`.
-    - Safety safeguards: Confirmation dialog with 5-second countdown for bulk actions to prevent accidental lab shutdown.
-    - Message modal: custom title and text prompt dispatched to PC screen.
-    - API integration: Call `POST /api/commands`.
-- [ ] **1.6 Schedule Management UI**:
-  - Weekly schedule editor (`GET /api/labs/{id}/schedules`, `POST /api/labs/{id}/schedules`):
-    - Configure Wake Time (e.g. 07:30) and Shutdown Time (e.g. 17:00) per day of week (Monday through Sunday).
-    - Toggle `is_active` switch per day.
-  - Schedule Exceptions / Holiday manager (`GET /api/labs/{id}/schedule-exceptions`, `POST /api/labs/{id}/schedule-exceptions`):
-    - Date picker, reason text, override action (Skip power-on / Custom hours).
-- [ ] **1.7 Audit Logs & History View**:
-  - Command log table with pagination (`GET /api/commands`):
-    - Columns: Command ID, Target (PC/Lab), Issuer (User), Command Type, Status, Timestamp.
-    - Drill-down modal to view individual PC execution acks & return codes (`GET /api/commands/{id}`).
-    - "Export CSV" button linking to `GET /api/commands/export`.
-- [ ] **1.8 Notification Center**:
-  - Dropdown bell icon in top navigation bar (`GET /api/notifications`, `GET /api/notifications/unread-count`).
-  - List of alerts (e.g., PC unexpected shutdown, offline timeout, command failure).
-  - "Mark all as read" button (`POST /api/notifications/read-all`).
+- [x] **1.1 Project Setup & Base Design System**:
+  - Vite + React + Tailwind CSS v4 di `dashboard/`.
+  - Desain minimal white/off-white, tabular numerals, shadcn/ui style idiom, Framer Motion two-level stagger fade-up dan scroll reveal `whileInView`.
+- [x] **1.2 Authentication & State Management**:
+  - Login modal/view, token Bearer Sanctum, remember me, user profile context, auto fallback mock demo.
+- [x] **1.3 Lab Monitoring Matrix View**:
+  - Tab switcher Lab 1–6, grid 30 PC per lab, color badges (online hijau, offline abu-abu, booting kuning, alert merah).
+- [x] **1.4 PC Detail & Telemetry Modal**:
+  - Drawer modal dengan live gauges (CPU %, RAM %, Disk %), host/IP/MAC info, riwayat event daya.
+- [x] **1.5 Remote Command Control Center**:
+  - Toolbar aksi cepat & modal kirim pesan, timer safeguard konfirmasi 5 detik untuk aksi massal.
+- [x] **1.6 Schedule Management UI**:
+  - Editor jadwal mingguan buka/tutup jam lab + exception hari libur/cuti.
+- [x] **1.7 Audit Logs & History View**:
+  - Tabel riwayat perintah dengan pagination, status badge, modal rincian eksekusi, tombol export CSV.
+- [x] **1.8 Notification Center**:
+  - Dropdown lonceng notifikasi di Topbar + unread count badge + mark all as read.
 
 ---
 
-### 🔲 Phase 2: Live Real-Time Data Sync
-The worker updates the database and calls `POST /api/internal/broadcast`, but pushing updates to the browser frontend in real time needs to be connected:
-
-- [ ] **2.1 Frontend Sync Mechanism**:
-  - Option A (Lightweight & Reliable): Smart polling interval in `dashboard/` (poll `GET /api/labs/{id}` every 3–5 seconds while window is focused).
-  - Option B (Full Real-time): Setup Server-Sent Events (SSE) or Laravel Reverb WebSockets for live status badge updates without page reload.
+### ✅ Phase 2: Live Real-Time Data Sync [SELESAI]
+- [x] **2.1 Frontend Sync Mechanism**:
+  - Smart polling interval di `dashboard/` (4 detik untuk PC aktif, 10 detik notifikasi).
+  - Otomatis jeda/pause saat tab browser tidak aktif (`document.hidden`).
+  - Indikator pulse realtime di Topbar dengan toggle pause/resume.
+  - Fitur live instant search filter tanpa jeda render.
 
 ---
 
-### 🔲 Phase 3: Automated Scheduler Daemon
-The database tables and CRUD APIs for schedules exist, but the automated background execution needs to be implemented:
-
-- [ ] **3.1 Artisan Schedule Checker Command**:
-  - Create Artisan command: `app/Console/Commands/CheckLabSchedules.php` (`php artisan simlab:check-schedules`).
-  - Logic:
-    1. Read current day and time.
-    2. Check `schedule_exceptions` for today's date (skip if holiday exception exists).
-    3. Check `schedules` for active wake times (trigger WoL via `MqttPublisher` to relay).
-    4. Check `schedules` for active shutdown times (trigger `shutdown` command via `MqttPublisher` to agents).
-- [ ] **3.2 Cron / Daemon Execution**:
-  - Register the command in Laravel's scheduler (`routes/console.php`) to run every minute (`$schedule->command('simlab:check-schedules')->everyMinute();`).
-  - Document setup for `crontab` (`* * * * * cd /home/sir/remotelab/server && php artisan schedule:run >> /dev/null 2>&1`).
+### ✅ Phase 3: Automated Scheduler Daemon [SELESAI]
+- [x] **3.1 Artisan Schedule Checker Command**:
+  - Dibuat `app/Console/Commands/CheckLabSchedules.php` (`php artisan simlab:check-schedules`).
+  - Evaluasi tanggal hari ini, cek libur `schedule_exceptions`, eksekusi WoL via Relay dan Shutdown via MQTT.
+- [x] **3.2 Cron / Daemon Execution**:
+  - Didaftarkan di `routes/console.php` berjalan tiap menit (`Schedule::command('simlab:check-schedules')->everyMinute();`).
+  - Siap dijalankan via Linux crontab (`* * * * * cd /path/to/server && php artisan schedule:run >> /dev/null 2>&1`).
 
 ---
 
