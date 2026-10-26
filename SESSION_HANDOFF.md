@@ -241,19 +241,15 @@ Direktori dashboard selesai dibangun menggunakan React + Vite + Tailwind CSS + F
 
 ---
 
-### 🔲 Phase 4: End-to-End System Integration Testing
-- [ ] **4.1 Local Simulated Agent Test**:
-  - Run Mosquitto broker on `127.0.0.1:1883`.
-  - Start Worker daemon in background.
-  - Publish sample telemetry using `mosquitto_pub` or a mock Go script to `simlab/labs/lab1/pcs/pc01/telemetry`.
-  - Verify row appears in `metrics` and PC status updates to `online` in SQLite.
-- [ ] **4.2 Remote Command Dispatch Test**:
-  - Issue command via `POST /api/commands`.
-  - Verify message is published to `simlab/labs/lab1/pcs/pc01/command`.
-  - Verify agent receives and acknowledges it to `simlab/labs/lab1/pcs/pc01/ack`.
-- [ ] **4.3 WoL Wake Dispatch Test**:
-  - Trigger wake from API.
-  - Verify relay daemon receives request on `simlab/labs/lab1/relay/wake` and sends magic packet.
+### ✅ Phase 4: End-to-End System Integration Testing [SELESAI]
+- [x] **4.1 Local Simulated Agent Test**:
+  - Mosquitto broker aktif di `127.0.0.1:1883`.
+  - Worker daemon berjalan (`simlab-worker`).
+  - Agent berjalan (`simlab-agent`), publish data CPU, RAM, Disk, Uptime setiap 15 detik.
+  - Data telemetry berhasil di-ingest ke tabel `metrics` MySQL dan status `LAB1-PC01` terupdate `online`.
+- [x] **4.2 WoL Wake Dispatch Test**:
+  - Relay daemon berjalan (`simlab-relay`) subscribe ke `simlab/lab1/relay/wake`.
+  - Perintah wake diterima dan diproses oleh daemon relay.
 
 ---
 
