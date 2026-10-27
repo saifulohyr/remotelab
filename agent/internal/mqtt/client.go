@@ -52,7 +52,8 @@ func NewClient(cfg *config.Config) (*Client, error) {
 		brokerURL = fmt.Sprintf("ssl://%s:%d", cfg.MQTT.BrokerHost, cfg.MQTT.BrokerPort)
 
 		tlsConfig := &tls.Config{
-			MinVersion: tls.VersionTLS12,
+			MinVersion:         tls.VersionTLS12,
+			InsecureSkipVerify: true,
 		}
 
 		// Load CA certificate if provided

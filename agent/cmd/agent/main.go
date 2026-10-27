@@ -1,13 +1,4 @@
 // SIMLab Agent — Windows Service for PC monitoring and remote control.
-//
-// Usage:
-//
-//	simlab-agent                     Run in foreground (debug mode)
-//	simlab-agent install             Install as Windows Service
-//	simlab-agent uninstall           Remove Windows Service
-//	simlab-agent start               Start the service
-//	simlab-agent stop                Stop the service
-//	simlab-agent --config path.yaml  Use custom config file
 package main
 
 import (
@@ -15,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -27,7 +19,20 @@ import (
 	"github.com/simlab/agent/internal/winapi"
 )
 
-var configPath = flag.String("config", "config.yaml", "Path to configuration file")
+var configPath = flag.String("config", "", "Path to configuration file")
+
+// resolveConfigPath returns absolute path to config.yaml in exe directory if not passed
+func resolveConfigPath(path string) string {
+	if path != "" {
+		return path
+	}
+	exePath, err := os.Executable()
+	if err == nil {
+		dir := filepath.Dir(exePath)
+		return filepath.Join(dir, "config.yaml")
+	}
+	return "config.yaml"
+}
 
 // program implements the kardianos/service interface.
 type program struct {
@@ -44,12 +49,21 @@ func (p *program) Start(s service.Service) error {
 }
 
 func (p *program) run() {
+	realConfigPath := resolveConfigPath(*configPath)
+	cfg, err := config.Load(realConfigPath)
+	if err != nil {
+		log.Printf("[Agent] FATAL: Failed to load config from %s: %v", realConfigPath, err)
+		return
+	}
+	p.cfg = cfg
+
 	log.Println("[Agent] Starting SIMLab Agent v" + p.cfg.Agent.Version)
 
 	// Initialize MQTT client
 	client, err := mqttclient.NewClient(p.cfg)
 	if err != nil {
-		log.Fatalf("[Agent] Failed to create MQTT client: %v", err)
+		log.Printf("[Agent] Failed to create MQTT client: %v", err)
+		return
 	}
 	p.mqttClient = client
 
@@ -66,10 +80,12 @@ func (p *program) run() {
 		p.cmdHandler.Handle(payload)
 	})
 
-	// Connect to MQTT broker
-	if err := p.mqttClient.Connect(); err != nil {
-		log.Printf("[Agent] Failed to connect to broker: %v (will retry)", err)
-	}
+	// Connect to MQTT broker (with background retry, don't block service)
+	go func() {
+		if err := p.mqttClient.Connect(); err != nil {
+			log.Printf("[Agent] MQTT initial connect failed: %v (client will auto-reconnect)", err)
+		}
+	}()
 
 	// Start telemetry loop
 	ticker := time.NewTicker(time.Duration(p.cfg.Agent.TelemetryInterval) * time.Second)
@@ -113,12 +129,6 @@ func (p *program) Stop(s service.Service) error {
 func main() {
 	flag.Parse()
 
-	// Load configuration
-	cfg, err := config.Load(*configPath)
-	if err != nil {
-		log.Fatalf("[Agent] Failed to load config: %v", err)
-	}
-
 	// Configure the service
 	svcConfig := &service.Config{
 		Name:        "SIMLab",
@@ -131,7 +141,7 @@ func main() {
 		},
 	}
 
-	prg := &program{cfg: cfg}
+	prg := &program{}
 	s, err := service.New(prg, svcConfig)
 	if err != nil {
 		log.Fatalf("[Agent] Failed to create service: %v", err)

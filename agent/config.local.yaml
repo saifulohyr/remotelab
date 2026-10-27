@@ -1,0 +1,18 @@
+# SIMLab Agent Local Test Configuration
+agent:
+  version: "1.0.0"
+  telemetry_interval: 15
+  log_level: "info"
+
+mqtt:
+  broker_host: "127.0.0.1"
+  broker_port: 1883
+  username: ""
+  password: ""
+  use_tls: false
+  ca_cert_path: ""
+  keep_alive: 10
+
+lab:
+  lab_id: "lab1"
+  pc_id: "pc01"
