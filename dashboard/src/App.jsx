@@ -212,7 +212,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex bg-[#F8FAFC] min-h-screen font-sans text-slate-800 antialiased">
+    <div className="flex bg-[#fafafa] min-h-screen font-sans text-zinc-900 antialiased selection:bg-zinc-900 selection:text-white">
       {/* Sidebar */}
       <Sidebar
         activeTab={activeTab}
@@ -259,9 +259,9 @@ export default function App() {
               {/* Heading Section */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                  <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Overview</h1>
-                  <p className="text-xs text-slate-400 mt-1 font-medium">
-                    Monitoring operasional laboratorium terpadu, telemetri real-time, dan otomasi daya.
+                  <h1 className="text-xl font-semibold text-zinc-900 tracking-tight">Ringkasan Sistem</h1>
+                  <p className="text-xs text-zinc-500 mt-1 font-mono">
+                    Telemetri terpusat, pengawasan node workstation, dan kontrol daya otomatis.
                   </p>
                 </div>
               </div>
@@ -321,11 +321,11 @@ export default function App() {
               className="space-y-6"
             >
               <div>
-                <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
-                  Manajemen Perangkat & Status PC
+                <h1 className="text-xl font-semibold text-zinc-900 tracking-tight">
+                  Node Workstation
                 </h1>
-                <p className="text-xs text-slate-400 mt-1">
-                  Kontrol dan telemetri langsung unit workstation di seluruh lab.
+                <p className="text-xs text-zinc-500 mt-1 font-mono">
+                  Pengawasan langsung metrik perangkat keras dan status jaringan per node.
                 </p>
               </div>
 
