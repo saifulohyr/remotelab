@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { api } from '../api';
+import { Lock, Shield } from 'lucide-react';
 
 export default function LoginPage({ onLoginSuccess }) {
   const [email, setEmail] = useState('');
@@ -23,60 +24,56 @@ export default function LoginPage({ onLoginSuccess }) {
     }
   };
 
-  const handleQuickFill = (demoEmail, demoPass) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-  };
-
   return (
-    <div className="min-h-screen w-full bg-[#f8fafc] flex flex-col justify-between p-6 sm:p-10 font-sans selection:bg-slate-900 selection:text-white">
+    <div className="min-h-screen w-full bg-[#fafafa] flex flex-col justify-between p-6 sm:p-10 font-sans selection:bg-zinc-900 selection:text-white">
       {/* Header bar */}
       <div className="w-full max-w-5xl mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-slate-900 text-white flex items-center justify-center font-bold text-sm tracking-tight">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-md bg-zinc-950 text-white flex items-center justify-center font-mono font-semibold text-xs tracking-tight">
             S
           </div>
-          <span className="text-sm font-semibold text-slate-900 tracking-tight">SIMLab</span>
+          <span className="text-xs font-semibold text-zinc-900 tracking-tight font-mono">SIMLab</span>
         </div>
-        <div className="text-xs text-slate-500 font-medium">
-          Lab Remote System v1.0
+        <div className="text-[11px] text-zinc-400 font-mono">
+          SMK Muhammadiyah 1 Cilacap
         </div>
       </div>
 
       {/* Main Container */}
       <div className="w-full max-w-sm mx-auto my-auto py-12">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Masuk</h1>
-          <p className="text-sm text-slate-500 mt-1.5">
-            Gunakan akun administrator atau operator untuk mengelola workstation lab.
+          <h1 className="text-xl font-semibold tracking-tight text-zinc-900">Autentikasi Akses</h1>
+          <p className="text-xs text-zinc-500 mt-1.5 font-mono">
+            Masuk dengan akun terverifikasi untuk mengelola node laboratorium.
           </p>
         </div>
 
         {error && (
-          <div className="mb-6 p-3.5 bg-red-50 border border-red-200 rounded-lg text-xs font-medium text-red-700">
+          <div className="mb-5 p-3 bg-rose-50 border border-rose-200 rounded-lg text-xs font-mono text-rose-700">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-slate-700 mb-1.5">
-              Email
+            <label className="block text-xs font-medium text-zinc-700 mb-1.5 font-mono">
+              Email Pengguna
             </label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="nama@simlab.local"
+              placeholder="user@domain.com"
               required
-              className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg shadow-sm placeholder:text-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-colors"
+              autoFocus
+              className="w-full px-3 py-2 text-xs font-mono bg-white border border-zinc-300 rounded-lg shadow-2xs placeholder:text-zinc-400 focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 transition-colors"
             />
           </div>
 
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-medium text-slate-700">
-                Kata sandi
+              <label className="block text-xs font-medium text-zinc-700 font-mono">
+                Kata Sandi
               </label>
             </div>
             <input
@@ -85,63 +82,41 @@ export default function LoginPage({ onLoginSuccess }) {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               required
-              className="w-full px-3 py-2 text-sm bg-white border border-slate-300 rounded-lg shadow-sm placeholder:text-slate-400 focus:outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900 transition-colors"
+              className="w-full px-3 py-2 text-xs font-mono bg-white border border-zinc-300 rounded-lg shadow-2xs placeholder:text-zinc-400 focus:outline-none focus:border-zinc-900 focus:ring-1 focus:ring-zinc-900 transition-colors"
             />
           </div>
 
           <div className="flex items-center pt-1">
-            <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-600">
+            <label className="flex items-center gap-2 cursor-pointer text-xs text-zinc-600">
               <input
                 type="checkbox"
                 checked={rememberMe}
                 onChange={(e) => setRememberMe(e.target.checked)}
-                className="w-4 h-4 rounded border-slate-300 text-slate-900 focus:ring-slate-900"
+                className="w-3.5 h-3.5 rounded border-zinc-300 text-zinc-900 focus:ring-zinc-900"
               />
-              <span>Ingat saya</span>
+              <span className="font-mono text-[11px]">Pertahankan sesi</span>
             </label>
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-2 py-2.5 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-sm font-medium shadow-sm transition-colors disabled:opacity-50"
+            className="w-full mt-2 py-2.5 px-4 bg-zinc-900 hover:bg-zinc-800 text-white rounded-lg text-xs font-medium font-mono shadow-2xs transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {loading ? 'Memverifikasi...' : 'Masuk ke sistem'}
+            <Lock className="w-3 h-3" />
+            <span>{loading ? 'MEMVERIFIKASI...' : 'MASUK KE KONSOL'}</span>
           </button>
         </form>
 
-        {/* Demo credentials box: simple, neutral table */}
-        <div className="mt-8 pt-6 border-t border-slate-200">
-          <p className="text-xs font-medium text-slate-500 mb-3">Akun pengujian bawaan:</p>
-          <div className="space-y-2 text-xs">
-            <div 
-              onClick={() => handleQuickFill('admin@simlab.local', 'Admin123!')}
-              className="p-2.5 rounded-lg border border-slate-200 hover:border-slate-300 bg-white cursor-pointer flex items-center justify-between transition-colors group"
-            >
-              <div>
-                <span className="font-medium text-slate-900 block">Superadmin</span>
-                <span className="font-mono text-[11px] text-slate-500">admin@simlab.local</span>
-              </div>
-              <span className="text-[11px] font-mono text-slate-400 group-hover:text-slate-700">Admin123!</span>
-            </div>
-
-            <div 
-              onClick={() => handleQuickFill('operator1@simlab.local', 'Operator123!')}
-              className="p-2.5 rounded-lg border border-slate-200 hover:border-slate-300 bg-white cursor-pointer flex items-center justify-between transition-colors group"
-            >
-              <div>
-                <span className="font-medium text-slate-900 block">Operator</span>
-                <span className="font-mono text-[11px] text-slate-500">operator1@simlab.local</span>
-              </div>
-              <span className="text-[11px] font-mono text-slate-400 group-hover:text-slate-700">Operator123!</span>
-            </div>
-          </div>
+        <div className="mt-8 pt-4 border-t border-zinc-200/80 flex items-center justify-center gap-2 text-[11px] font-mono text-zinc-400">
+          <Shield className="w-3.5 h-3.5 text-zinc-400" />
+          <span>Sesi terenkripsi HMAC SHA-256</span>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="w-full max-w-5xl mx-auto text-center text-xs text-slate-400">
-        &copy; {new Date().getFullYear()} SIMLab Remote Management System.
+      <div className="w-full max-w-5xl mx-auto text-center text-[11px] font-mono text-zinc-400">
+        &copy; {new Date().getFullYear()} SIMLab &bull; SMK Muhammadiyah 1 Cilacap
       </div>
     </div>
   );
