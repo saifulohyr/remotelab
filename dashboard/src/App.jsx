@@ -10,7 +10,7 @@ import PcDetailModal from './components/PcDetailModal';
 import CommandModal from './components/CommandModal';
 import ScheduleView from './components/ScheduleView';
 import AuditLogView from './components/AuditLogView';
-import LoginModal from './components/LoginModal';
+import LoginPage from './components/LoginPage';
 import { sectionContainerVariant, itemFadeUpVariant } from './motion';
 import { api, getStoredToken, getStoredUser } from './api';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
@@ -206,6 +206,11 @@ export default function App() {
       )
     : pcs;
 
+  // If not authenticated, render dedicated LoginPage (full screen, clean)
+  if (!isAuthenticated) {
+    return <LoginPage onLoginSuccess={handleLoginSuccess} />;
+  }
+
   return (
     <div className="flex bg-[#F8FAFC] min-h-screen font-sans text-slate-800 antialiased">
       {/* Sidebar */}
@@ -398,12 +403,6 @@ export default function App() {
           }}
         />
       )}
-
-      {/* Login Modal (if unauthenticated) */}
-      <LoginModal
-        isOpen={!isAuthenticated}
-        onLoginSuccess={handleLoginSuccess}
-      />
     </div>
   );
 }
