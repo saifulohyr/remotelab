@@ -151,9 +151,9 @@ func handleMessage(msg mqtt.Message, cache *pcCache, db *sql.DB,
 		return
 	}
 
-	labID := parts[1]
-	pcID := parts[2]
-	msgType := parts[3]
+	labID := strings.ToLower(parts[1])
+	pcID := strings.ToLower(parts[2])
+	msgType := strings.ToLower(parts[3])
 
 	// Skip relay messages for now (handled separately)
 	if pcID == "relay" {

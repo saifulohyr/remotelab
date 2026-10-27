@@ -4,6 +4,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v3"
 )
@@ -63,14 +64,42 @@ func Load(path string) (*Config, error) {
 		return nil, fmt.Errorf("failed to parse config file %s: %w", path, err)
 	}
 
+	// Auto-detect PC and Lab identity from Hostname if omitted or set to auto
+	hostname, _ := os.Hostname()
+	cleanHostname := strings.ToLower(strings.TrimSpace(hostname))
+
+	if cfg.Lab.PCID == "" || cfg.Lab.PCID == "auto" {
+		if cleanHostname != "" {
+			cfg.Lab.PCID = cleanHostname
+		} else {
+			cfg.Lab.PCID = "pc01"
+		}
+	}
+
+	if cfg.Lab.LabID == "" || cfg.Lab.LabID == "auto" {
+		// Infer lab_id from PC hostname prefix (e.g., rpl1-pc01 -> lab-rpl-1, bhs-pc02 -> lab-bahasa)
+		lower := strings.ToLower(cfg.Lab.PCID)
+		switch {
+		case strings.HasPrefix(lower, "rpl1"):
+			cfg.Lab.LabID = "lab-rpl-1"
+		case strings.HasPrefix(lower, "rpl2"):
+			cfg.Lab.LabID = "lab-rpl-2"
+		case strings.HasPrefix(lower, "rpl3"):
+			cfg.Lab.LabID = "lab-rpl-3"
+		case strings.HasPrefix(lower, "rpl4"):
+			cfg.Lab.LabID = "lab-rpl-4"
+		case strings.HasPrefix(lower, "bhs") || strings.HasPrefix(lower, "bahasa"):
+			cfg.Lab.LabID = "lab-bahasa"
+		case strings.HasPrefix(lower, "rps"):
+			cfg.Lab.LabID = "lab-rps"
+		default:
+			// Fallback: if lab_id still not resolved, default to lab-rpl-1
+			cfg.Lab.LabID = "lab-rpl-1"
+		}
+	}
+
 	if cfg.MQTT.BrokerHost == "" {
 		return nil, fmt.Errorf("mqtt.broker_host is required")
-	}
-	if cfg.Lab.LabID == "" {
-		return nil, fmt.Errorf("lab.lab_id is required")
-	}
-	if cfg.Lab.PCID == "" {
-		return nil, fmt.Errorf("lab.pc_id is required")
 	}
 
 	return cfg, nil

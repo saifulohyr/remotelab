@@ -1,0 +1,24 @@
+# SIMLab MQTT Worker Local Test Configuration
+mqtt:
+  broker_host: "127.0.0.1"
+  broker_port: 1883
+  username: ""
+  password: ""
+  use_tls: false
+  ca_cert_path: ""
+
+database:
+  host: "127.0.0.1"
+  port: 3306
+  name: "simlab"
+  username: "simlab"
+  password: "changeme"
+
+worker:
+  batch_size: 1
+  flush_interval: 500
+  offline_threshold: 45
+
+laravel:
+  base_url: "http://127.0.0.1:8000"
+  api_token: "test-token"
