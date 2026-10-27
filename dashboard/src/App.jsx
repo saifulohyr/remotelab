@@ -6,6 +6,7 @@ import KpiCards from './components/KpiCards';
 import LabUsageChart from './components/LabUsageChart';
 import LabMatrix from './components/LabMatrix';
 import QuickActions from './components/QuickActions';
+import AgentDownloadCard from './components/AgentDownloadCard';
 import PcDetailModal from './components/PcDetailModal';
 import CommandModal from './components/CommandModal';
 import ScheduleView from './components/ScheduleView';
@@ -273,6 +274,11 @@ export default function App() {
                 offlineCount={offlineCount}
               />
 
+              {/* Agent Client Download Card */}
+              <motion.div variants={itemFadeUpVariant}>
+                <AgentDownloadCard />
+              </motion.div>
+
               {/* Bar Chart Section */}
               <motion.div variants={itemFadeUpVariant}>
                 <LabUsageChart />
@@ -333,6 +339,8 @@ export default function App() {
                 onTriggerAction={handleTriggerQuickAction}
                 selectedCount={selectedPcIds.length}
               />
+
+              <AgentDownloadCard />
 
               <LabMatrix
                 labs={labs}
