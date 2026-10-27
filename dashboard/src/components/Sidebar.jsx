@@ -22,8 +22,8 @@ export default function Sidebar({ activeTab, setActiveTab, selectedLabId, setSel
       <div>
         {/* Brand Header */}
         <div className="flex items-center gap-3 px-3 py-3 mb-6 border-b border-zinc-200/60 pb-5">
-          <div className="w-8 h-8 rounded-lg bg-zinc-950 flex items-center justify-center text-zinc-100 shadow-xs">
-            <Layers className="w-4 h-4 text-zinc-200" />
+          <div className="w-8 h-8 rounded-lg overflow-hidden border border-zinc-200 shadow-2xs flex items-center justify-center bg-white shrink-0">
+            <img src="/logomuma.jpg" alt="Logo SMK Muhammadiyah 1" className="w-full h-full object-cover" />
           </div>
           <div>
             <h1 className="font-semibold text-zinc-900 text-sm tracking-tight leading-none flex items-center gap-1.5">

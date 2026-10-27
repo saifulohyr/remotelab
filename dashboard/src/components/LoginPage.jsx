@@ -29,8 +29,8 @@ export default function LoginPage({ onLoginSuccess }) {
       {/* Header bar */}
       <div className="w-full max-w-5xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-md bg-zinc-950 text-white flex items-center justify-center font-mono font-semibold text-xs tracking-tight">
-            S
+          <div className="w-7 h-7 rounded-md overflow-hidden border border-zinc-200 shadow-2xs flex items-center justify-center bg-white shrink-0">
+            <img src="/logomuma.jpg" alt="Logo SMK Muhammadiyah 1" className="w-full h-full object-cover" />
           </div>
           <span className="text-xs font-semibold text-zinc-900 tracking-tight font-mono">SIMLab</span>
         </div>
