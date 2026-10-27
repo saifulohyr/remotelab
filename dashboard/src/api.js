@@ -173,12 +173,12 @@ function getMockData(endpoint, options) {
   if (endpoint === '/labs') {
     return {
       data: [
-        { id: 1, name: 'Laboratorium 1 (Multimedia)', slug: 'lab-1', subnet: '192.168.10.0/24', pcs_count: 30, online_count: 28, offline_count: 2, booting_count: 0, wake_failed_count: 0 },
-        { id: 2, name: 'Laboratorium 2 (Jaringan Komputer)', slug: 'lab-2', subnet: '192.168.20.0/24', pcs_count: 30, online_count: 26, offline_count: 3, booting_count: 1, wake_failed_count: 0 },
-        { id: 3, name: 'Laboratorium 3 (Pemrograman Web)', slug: 'lab-3', subnet: '192.168.30.0/24', pcs_count: 30, online_count: 29, offline_count: 1, booting_count: 0, wake_failed_count: 0 },
-        { id: 4, name: 'Laboratorium 4 (Sistem Informasi)', slug: 'lab-4', subnet: '192.168.40.0/24', pcs_count: 30, online_count: 25, offline_count: 4, booting_count: 0, wake_failed_count: 1 },
-        { id: 5, name: 'Laboratorium 5 (Kecerdasan Buatan)', slug: 'lab-5', subnet: '192.168.50.0/24', pcs_count: 30, online_count: 30, offline_count: 0, booting_count: 0, wake_failed_count: 0 },
-        { id: 6, name: 'Laboratorium 6 (Hardware & IOT)', slug: 'lab-6', subnet: '192.168.60.0/24', pcs_count: 30, online_count: 22, offline_count: 7, booting_count: 1, wake_failed_count: 0 },
+        { id: 1, name: 'LAB RPL 1', slug: 'lab-rpl-1', subnet: '192.168.1.0/24', pcs_count: 30, online_count: 0, offline_count: 30, booting_count: 0, wake_failed_count: 0 },
+        { id: 2, name: 'LAB RPL 2', slug: 'lab-rpl-2', subnet: '192.168.2.0/24', pcs_count: 30, online_count: 0, offline_count: 30, booting_count: 0, wake_failed_count: 0 },
+        { id: 3, name: 'LAB RPL 3', slug: 'lab-rpl-3', subnet: '192.168.3.0/24', pcs_count: 30, online_count: 0, offline_count: 30, booting_count: 0, wake_failed_count: 0 },
+        { id: 4, name: 'LAB RPL 4', slug: 'lab-rpl-4', subnet: '192.168.4.0/24', pcs_count: 30, online_count: 0, offline_count: 30, booting_count: 0, wake_failed_count: 0 },
+        { id: 5, name: 'LAB Bahasa', slug: 'lab-bahasa', subnet: '192.168.5.0/24', pcs_count: 30, online_count: 0, offline_count: 30, booting_count: 0, wake_failed_count: 0 },
+        { id: 6, name: 'LAB RPS', slug: 'lab-rps', subnet: '192.168.6.0/24', pcs_count: 30, online_count: 0, offline_count: 30, booting_count: 0, wake_failed_count: 0 },
       ],
     };
   }
@@ -186,31 +186,28 @@ function getMockData(endpoint, options) {
   const labMatch = endpoint.match(/\/labs\/(\d+)\/pcs/);
   if (labMatch) {
     const labId = parseInt(labMatch[1], 10);
+    const prefixes = ['', 'RPL1', 'RPL2', 'RPL3', 'RPL4', 'BHS', 'RPS'];
+    const pfx = prefixes[labId] || `LAB${labId}`;
     const pcs = Array.from({ length: 30 }, (_, i) => {
       const idx = i + 1;
       const numStr = String(idx).padStart(2, '0');
-      // Mix of online, offline, busy, error
-      let status = 'online';
-      if (idx === 7 || idx === 19) status = 'offline_normal';
-      if (idx === 14) status = 'booting';
-      if (idx === 23) status = 'wake_failed';
+      const status = 'offline_normal';
 
-      const isOnline = status === 'online';
       return {
         id: labId * 100 + idx,
         lab_id: labId,
-        hostname: `LAB${labId}-PC${numStr}`,
-        slug: `lab${labId}-pc${numStr}`,
-        ip_address: `192.168.${labId}0.${10 + idx}`,
-        mac_address: `00:1B:44:11:3A:${numStr}`,
+        hostname: `${pfx}-PC${numStr}`,
+        slug: `${pfx.toLowerCase()}-pc${numStr}`,
+        ip_address: null,
+        mac_address: `02:00:00:0${labId}:${numStr}:00`,
         status,
-        agent_version: '1.2.0',
+        agent_version: null,
         wol_enabled: true,
-        cpu_percent: isOnline ? Math.floor(18 + Math.random() * 45) : 0,
-        ram_percent: isOnline ? Math.floor(40 + Math.random() * 35) : 0,
-        disk_percent: 62,
-        current_user: isOnline ? `user${numStr}` : null,
-        uptime_hours: isOnline ? 5 + (idx % 8) : 0,
+        cpu_percent: 0,
+        ram_percent: 0,
+        disk_percent: 0,
+        current_user: null,
+        uptime_hours: 0,
       };
     });
     return { data: pcs };

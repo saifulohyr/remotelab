@@ -8,7 +8,7 @@ import {
   AlertTriangle 
 } from 'lucide-react';
 
-export default function QuickActions({ onTriggerAction, selectedCount = 0 }) {
+export default function QuickActions({ onTriggerAction, selectedCount = 0, onlineCount = 0 }) {
   const [confirmModal, setConfirmModal] = useState(null); // { action, label, isDangerous }
   const [countdown, setCountdown] = useState(5);
   const [timerId, setTimerId] = useState(null);
@@ -71,15 +71,19 @@ export default function QuickActions({ onTriggerAction, selectedCount = 0 }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
           {actions.map((act) => {
             const Icon = act.icon;
+            const isTargetOffline = selectedCount > 0 ? false : (onlineCount === 0 && act.id !== 'wake');
             return (
               <button
                 key={act.id}
+                disabled={isTargetOffline}
                 onClick={() => handleActionClick(act)}
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
-                  act.isDangerous
+                  isTargetOffline
+                    ? 'border-zinc-200 text-zinc-300 bg-zinc-50 cursor-not-allowed opacity-60'
+                    : act.isDangerous
                     ? 'border-zinc-300 text-zinc-700 hover:border-zinc-900 hover:text-zinc-950 hover:bg-zinc-50'
                     : 'border-zinc-200 text-zinc-800 bg-white hover:bg-zinc-50 hover:border-zinc-300'
                 }`}

@@ -192,10 +192,11 @@ export default function App() {
     fetchInitialData();
   };
 
-  // Calculate totals
-  const totalPcs = labs.reduce((sum, l) => sum + (l.pcs_count || 30), 0) || 180;
-  const onlineCount = labs.reduce((sum, l) => sum + (l.online_count || 28), 0) || 166;
-  const offlineCount = Math.max(0, totalPcs - onlineCount);
+  // Calculate totals from live data (no faked fallbacks)
+  const totalPcs = labs.reduce((sum, l) => sum + (Number(l.pcs_count) || 0), 0);
+  const onlineCount = labs.reduce((sum, l) => sum + (Number(l.online_count) || 0), 0);
+  const offlineCount = labs.reduce((sum, l) => sum + (Number(l.offline_count) || 0), 0);
+  const warningCount = labs.reduce((sum, l) => sum + ((Number(l.booting_count) || 0) + (Number(l.wake_failed_count) || 0)), 0);
 
   // Filtered PCs for search
   const filteredPcs = searchQuery.trim()
@@ -271,11 +272,12 @@ export default function App() {
                 totalPcs={totalPcs}
                 onlineCount={onlineCount}
                 offlineCount={offlineCount}
+                warningCount={warningCount}
               />
 
               {/* Bar Chart Section */}
               <motion.div variants={itemFadeUpVariant}>
-                <LabUsageChart />
+                <LabUsageChart onlineCount={onlineCount} />
               </motion.div>
 
               {/* Quick Actions Toolbar */}
@@ -283,6 +285,7 @@ export default function App() {
                 <QuickActions
                   onTriggerAction={handleTriggerQuickAction}
                   selectedCount={selectedPcIds.length}
+                  onlineCount={onlineCount}
                 />
               </motion.div>
 
