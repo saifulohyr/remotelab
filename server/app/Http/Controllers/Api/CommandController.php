@@ -136,7 +136,11 @@ class CommandController extends Controller
     {
         $perPage = min($request->query('per_page', 25), 100);
 
-        $query = CommandLog::with(['user:id,name', 'results:id,command_log_id,pc_id,status'])
+        $query = CommandLog::with([
+            'user:id,name', 
+            'results.pc:id,hostname,slug',
+            'results:id,command_log_id,pc_id,status,output,error_message,executed_at'
+        ])
             ->orderByDesc('issued_at');
 
         // Filter by lab

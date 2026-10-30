@@ -27,6 +27,15 @@ export default function AuditLogView() {
     }
   };
 
+  const getLogRowStatus = (log) => {
+    if (!log.results || log.results.length === 0) return 'pending';
+    const statuses = log.results.map((r) => r.status);
+    if (statuses.every((s) => s === 'executed')) return 'completed';
+    if (statuses.some((s) => s === 'failed')) return 'failed';
+    if (statuses.some((s) => s === 'delivered')) return 'delivered';
+    return statuses[0] || 'pending';
+  };
+
   const getStatusBadge = (status) => {
     switch (status) {
       case 'completed':
@@ -136,7 +145,7 @@ export default function AuditLogView() {
                       {log.user?.name || 'Otomasi Sistem'}
                     </td>
                     <td className="px-4 py-3">
-                      {getStatusBadge(log.status)}
+                      {getStatusBadge(getLogRowStatus(log))}
                     </td>
                     <td className="px-4 py-3 font-mono text-zinc-400 text-[11px]">
                       {log.created_at}
