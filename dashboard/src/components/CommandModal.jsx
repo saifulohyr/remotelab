@@ -134,7 +134,32 @@ export default function CommandModal({
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-zinc-700 mb-1">Skrip / Perintah CLI</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-zinc-700">Skrip / Perintah CLI</label>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] text-zinc-400 font-mono">Preset:</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShell('powershell');
+                        setScript(`$path = (Get-ChildItem -Path "C:\\", "D:\\" -Filter "ExamBrowser*.exe" -Recurse -Depth 3 -ErrorAction SilentlyContinue | Select-Object -First 1).FullName\nif ($path) {\n  schtasks /create /tn "RunExam" /tr ('"' + $path + '"') /sc once /st 00:00 /it /f\n  schtasks /run /tn "RunExam"\n  Start-Sleep -Seconds 2\n  schtasks /delete /tn "RunExam" /f\n  Write-Output "Berhasil membuka: $path"\n} else {\n  Write-Error "File ExamBrowser.exe tidak ditemukan di C: atau D:"\n}`);
+                      }}
+                      className="px-2 py-0.5 text-[10px] font-mono bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded transition-colors"
+                    >
+                      Buka ExamBrowser
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShell('cmd');
+                        setScript('taskkill /F /IM ExamBrowser.exe /T');
+                      }}
+                      className="px-2 py-0.5 text-[10px] font-mono bg-zinc-100 hover:bg-zinc-200 text-zinc-700 rounded transition-colors"
+                    >
+                      Tutup ExamBrowser
+                    </button>
+                  </div>
+                </div>
                 <textarea
                   rows={4}
                   value={script}
