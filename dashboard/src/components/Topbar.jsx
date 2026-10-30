@@ -2,13 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { 
   Search, 
   Bell, 
-  Check, 
   LogOut, 
-  User as UserIcon, 
-  CheckCheck,
-  Activity,
-  ShieldCheck,
-  RefreshCw
+  CheckCheck
 } from 'lucide-react';
 import { api } from '../api';
 

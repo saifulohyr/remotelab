@@ -2,11 +2,16 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"flag"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -40,12 +45,95 @@ type program struct {
 	mqttClient *mqttclient.Client
 	cmdHandler *command.Handler
 	stopChan   chan struct{}
+	httpClient *http.Client
 }
 
 func (p *program) Start(s service.Service) error {
 	p.stopChan = make(chan struct{})
 	go p.run()
 	return nil
+}
+
+type telemetryResponse struct {
+	Status   string            `json:"status"`
+	Commands []command.Command `json:"commands,omitempty"`
+}
+
+func (p *program) sendHTTPTelemetry(data telemetry.Data) {
+	serverURL := p.cfg.Server.URL
+	if serverURL == "" {
+		serverURL = "http://192.168.1.2:8000"
+	}
+	telemetryURL := strings.TrimRight(serverURL, "/") + "/api/telemetry"
+	ackURL := strings.TrimRight(serverURL, "/") + "/api/commands/ack"
+
+	hostname, _ := os.Hostname()
+
+	payload := map[string]interface{}{
+		"lab_id":   p.cfg.Lab.LabID,
+		"pc_id":    p.cfg.Lab.PCID,
+		"hostname": hostname,
+		"status":   "online",
+		"version":  p.cfg.Agent.Version,
+		"metrics": map[string]interface{}{
+			"cpu_percent":  data.CPUPercent,
+			"ram_percent":  data.RAMPercent,
+			"disk_percent": data.DiskPercent,
+		},
+	}
+
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return
+	}
+
+	req, err := http.NewRequest("POST", telemetryURL, bytes.NewBuffer(body))
+	if err != nil {
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := p.httpClient.Do(req)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	respBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return
+	}
+
+	var tr telemetryResponse
+	if err := json.Unmarshal(respBytes, &tr); err != nil {
+		return
+	}
+
+	// Process any commands delivered via HTTP
+	for _, cmd := range tr.Commands {
+		ack := p.cmdHandler.ExecuteDirect(cmd)
+
+		// Send ACK back via HTTP
+		ackPayload := map[string]interface{}{
+			"command_id": ack.CommandID,
+			"pc_id":      p.cfg.Lab.PCID,
+			"hostname":   hostname,
+			"status":     ack.Status,
+			"message":    ack.Message,
+			"output":     ack.Output,
+		}
+		ackBody, err := json.Marshal(ackPayload)
+		if err == nil {
+			ackReq, err := http.NewRequest("POST", ackURL, bytes.NewBuffer(ackBody))
+			if err == nil {
+				ackReq.Header.Set("Content-Type", "application/json")
+				ackResp, err := p.httpClient.Do(ackReq)
+				if err == nil {
+					ackResp.Body.Close()
+				}
+			}
+		}
+	}
 }
 
 func (p *program) run() {
@@ -56,6 +144,7 @@ func (p *program) run() {
 		return
 	}
 	p.cfg = cfg
+	p.httpClient = &http.Client{Timeout: 10 * time.Second}
 
 	log.Println("[Agent] Starting SIMLab Agent v" + p.cfg.Agent.Version)
 
@@ -95,16 +184,18 @@ func (p *program) run() {
 	log.Printf("[Agent] Lab: %s, PC: %s", p.cfg.Lab.LabID, p.cfg.Lab.PCID)
 
 	// Send initial telemetry immediately
-	data := telemetry.Collect(p.cfg.Agent.Version)
-	p.mqttClient.PublishTelemetry(data)
+	initialData := telemetry.Collect(p.cfg.Agent.Version)
+	p.mqttClient.PublishTelemetry(initialData)
+	go p.sendHTTPTelemetry(initialData)
 
 	for {
 		select {
 		case <-ticker.C:
+			data := telemetry.Collect(p.cfg.Agent.Version)
 			if p.mqttClient.IsConnected() {
-				data := telemetry.Collect(p.cfg.Agent.Version)
 				p.mqttClient.PublishTelemetry(data)
 			}
+			go p.sendHTTPTelemetry(data)
 		case <-p.stopChan:
 			log.Println("[Agent] Stopping telemetry loop")
 			return
@@ -117,7 +208,6 @@ func (p *program) Stop(s service.Service) error {
 	close(p.stopChan)
 
 	if p.mqttClient != nil {
-		// Publish offline_normal status before disconnecting
 		p.mqttClient.PublishStatus("offline_normal", "agent_stopped")
 		time.Sleep(500 * time.Millisecond)
 		p.mqttClient.Disconnect()

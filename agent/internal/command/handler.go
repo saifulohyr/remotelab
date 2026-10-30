@@ -1,4 +1,4 @@
-// Package command handles incoming MQTT commands with whitelist validation,
+// Package command handles incoming commands with whitelist validation,
 // TTL expiry check, and replay protection for the SIMLab agent.
 package command
 
@@ -12,11 +12,12 @@ import (
 
 // AllowedActions defines the whitelist of permitted actions.
 var AllowedActions = map[string]bool{
-	"shutdown": true,
-	"reboot":   true,
-	"logoff":   true,
-	"lock":     true,
-	"message":  true,
+	"shutdown":   true,
+	"reboot":     true,
+	"logoff":     true,
+	"lock":       true,
+	"message":    true,
+	"run_script": true,
 }
 
 // Command represents an incoming command from the server.
@@ -30,10 +31,11 @@ type Command struct {
 
 // AckPayload represents the acknowledgment sent back to the server.
 type AckPayload struct {
-	CommandID  string `json:"command_id"`
-	Status     string `json:"status"` // delivered, executed, failed, rejected_expired, rejected_duplicate, rejected_unknown
-	Message    string `json:"message,omitempty"`
-	Timestamp  int64  `json:"timestamp"`
+	CommandID string `json:"command_id"`
+	Status    string `json:"status"` // delivered, executed, failed, rejected_expired, rejected_duplicate, rejected_unknown
+	Message   string `json:"message,omitempty"`
+	Output    string `json:"output,omitempty"`
+	Timestamp int64  `json:"timestamp"`
 }
 
 // Executor defines the interface for executing system commands.
@@ -43,6 +45,7 @@ type Executor interface {
 	Logoff() error
 	Lock() error
 	SendMessage(title, message string) error
+	RunScript(script, shell string) (string, error)
 }
 
 // Handler processes incoming commands with validation and deduplication.
@@ -67,7 +70,7 @@ func NewHandler(executor Executor, publishAck func(ack AckPayload)) *Handler {
 	return h
 }
 
-// Handle processes a raw command message payload.
+// Handle processes a raw command message payload from MQTT.
 func (h *Handler) Handle(payload []byte) {
 	var cmd Command
 	if err := json.Unmarshal(payload, &cmd); err != nil {
@@ -75,26 +78,39 @@ func (h *Handler) Handle(payload []byte) {
 		return
 	}
 
-	log.Printf("[Command] Received: action=%s command_id=%s", cmd.Action, cmd.CommandID)
+	ack := h.ExecuteDirect(cmd)
+	if h.publishAck != nil {
+		h.publishAck(ack)
+	}
+}
 
-	// Send delivery acknowledgment immediately
-	h.sendAck(cmd.CommandID, "delivered", "")
+// ExecuteDirect validates and executes a command, returning the AckPayload.
+func (h *Handler) ExecuteDirect(cmd Command) AckPayload {
+	log.Printf("[Command] Received: action=%s command_id=%s", cmd.Action, cmd.CommandID)
 
 	// Validate action is in whitelist
 	if !AllowedActions[cmd.Action] {
 		log.Printf("[Command] Rejected unknown action: %s", cmd.Action)
-		h.sendAck(cmd.CommandID, "rejected_unknown", fmt.Sprintf("unknown action: %s", cmd.Action))
-		return
+		return AckPayload{
+			CommandID: cmd.CommandID,
+			Status:    "rejected_unknown",
+			Message:   fmt.Sprintf("unknown action: %s", cmd.Action),
+			Timestamp: time.Now().Unix(),
+		}
 	}
 
 	// Check TTL expiry (with ±30 second clock drift tolerance)
 	now := time.Now().Unix()
 	expiresAt := cmd.IssuedAt + int64(cmd.TTLSeconds)
-	if now > expiresAt+30 {
+	if cmd.TTLSeconds > 0 && now > expiresAt+30 {
 		log.Printf("[Command] Rejected expired command: command_id=%s issued_at=%d ttl=%d now=%d",
 			cmd.CommandID, cmd.IssuedAt, cmd.TTLSeconds, now)
-		h.sendAck(cmd.CommandID, "rejected_expired", "command expired")
-		return
+		return AckPayload{
+			CommandID: cmd.CommandID,
+			Status:    "rejected_expired",
+			Message:   "command expired",
+			Timestamp: time.Now().Unix(),
+		}
 	}
 
 	// Check replay protection
@@ -102,25 +118,40 @@ func (h *Handler) Handle(payload []byte) {
 	if _, seen := h.seenCommands[cmd.CommandID]; seen {
 		h.mu.Unlock()
 		log.Printf("[Command] Rejected duplicate command: command_id=%s", cmd.CommandID)
-		h.sendAck(cmd.CommandID, "rejected_duplicate", "duplicate command_id")
-		return
+		return AckPayload{
+			CommandID: cmd.CommandID,
+			Status:    "rejected_duplicate",
+			Message:   "duplicate command_id",
+			Timestamp: time.Now().Unix(),
+		}
 	}
 	h.seenCommands[cmd.CommandID] = time.Now()
 	h.mu.Unlock()
 
 	// Execute the command
-	if err := h.execute(cmd); err != nil {
+	output, err := h.execute(cmd)
+	if err != nil {
 		log.Printf("[Command] Execution failed: action=%s error=%v", cmd.Action, err)
-		h.sendAck(cmd.CommandID, "failed", err.Error())
-		return
+		return AckPayload{
+			CommandID: cmd.CommandID,
+			Status:    "failed",
+			Message:   err.Error(),
+			Output:    output,
+			Timestamp: time.Now().Unix(),
+		}
 	}
 
 	log.Printf("[Command] Executed successfully: action=%s command_id=%s", cmd.Action, cmd.CommandID)
-	h.sendAck(cmd.CommandID, "executed", "")
+	return AckPayload{
+		CommandID: cmd.CommandID,
+		Status:    "executed",
+		Output:    output,
+		Timestamp: time.Now().Unix(),
+	}
 }
 
 // execute runs the command action via the system executor.
-func (h *Handler) execute(cmd Command) error {
+func (h *Handler) execute(cmd Command) (string, error) {
 	delaySec := 30 // default delay for shutdown/reboot
 	if d, ok := cmd.Params["delay"]; ok {
 		fmt.Sscanf(d, "%d", &delaySec)
@@ -132,32 +163,29 @@ func (h *Handler) execute(cmd Command) error {
 
 	switch cmd.Action {
 	case "shutdown":
-		return h.executor.Shutdown(delaySec, message)
+		return "", h.executor.Shutdown(delaySec, message)
 	case "reboot":
-		return h.executor.Reboot(delaySec, message)
+		return "", h.executor.Reboot(delaySec, message)
 	case "logoff":
-		return h.executor.Logoff()
+		return "", h.executor.Logoff()
 	case "lock":
-		return h.executor.Lock()
+		return "", h.executor.Lock()
 	case "message":
 		title := cmd.Params["title"]
 		if title == "" {
 			title = "SIMLab"
 		}
-		return h.executor.SendMessage(title, message)
+		return "", h.executor.SendMessage(title, message)
+	case "run_script":
+		script := cmd.Params["script"]
+		shell := cmd.Params["shell"]
+		if shell == "" {
+			shell = "powershell"
+		}
+		return h.executor.RunScript(script, shell)
 	default:
-		return fmt.Errorf("unsupported action: %s", cmd.Action)
+		return "", fmt.Errorf("unsupported action: %s", cmd.Action)
 	}
-}
-
-// sendAck publishes an acknowledgment for a command.
-func (h *Handler) sendAck(commandID, status, message string) {
-	h.publishAck(AckPayload{
-		CommandID: commandID,
-		Status:    status,
-		Message:   message,
-		Timestamp: time.Now().Unix(),
-	})
 }
 
 // cleanupLoop removes expired command IDs from the seen set every minute.

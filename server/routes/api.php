@@ -17,6 +17,8 @@ use Illuminate\Support\Facades\Route;
 
 // ── Public (unauthenticated) ──────────────────────────────
 Route::post('/login', [AuthController::class, 'login']);
+Route::post('/telemetry', [\App\Http\Controllers\Api\TelemetryIngestController::class, 'ingest']);
+Route::post('/commands/ack', [\App\Http\Controllers\Api\TelemetryIngestController::class, 'ack']);
 
 // ── Internal (worker → Laravel, token-protected) ──────────
 Route::post('/internal/broadcast', [InternalBroadcastController::class, 'handle']);

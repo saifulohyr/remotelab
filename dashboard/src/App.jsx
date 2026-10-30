@@ -135,12 +135,12 @@ export default function App() {
 
   // Command handlers
   const handleTriggerQuickAction = (actionId) => {
-    if (actionId === 'message') {
+    if (actionId === 'message' || actionId === 'run_script') {
       setCommandModalConfig({
         isOpen: true,
         targetType: selectedPcIds.length > 0 ? 'pc' : 'lab',
         targetId: selectedPcIds.length > 0 ? selectedPcIds[0] : selectedLabId,
-        action: 'message',
+        action: actionId,
       });
       return;
     }
@@ -164,6 +164,17 @@ export default function App() {
   };
 
   const handleSinglePcCommand = (pcId, actionId) => {
+    if (actionId === 'run_script') {
+      setActivePcDetailId(null);
+      setCommandModalConfig({
+        isOpen: true,
+        targetType: 'pc',
+        targetId: pcId,
+        action: 'run_script',
+      });
+      return;
+    }
+
     api.dispatchCommand({
       action: actionId,
       target_type: 'pc',

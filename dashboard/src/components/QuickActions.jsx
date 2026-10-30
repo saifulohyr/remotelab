@@ -5,6 +5,7 @@ import {
   MessageSquare, 
   RotateCw, 
   Power, 
+  Terminal,
   AlertTriangle 
 } from 'lucide-react';
 
@@ -14,6 +15,7 @@ export default function QuickActions({ onTriggerAction, selectedCount = 0, onlin
   const [timerId, setTimerId] = useState(null);
 
   const actions = [
+    { id: 'run_script', label: 'Terminal Runner', icon: Terminal, isDangerous: false },
     { id: 'wake', label: 'Wake-on-LAN', icon: Zap, isDangerous: false },
     { id: 'lock', label: 'Kunci Sesi', icon: Lock, isDangerous: false },
     { id: 'message', label: 'Broadcast Pesan', icon: MessageSquare, isDangerous: false },

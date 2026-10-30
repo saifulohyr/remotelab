@@ -14,6 +14,12 @@ type Config struct {
 	Agent  AgentConfig  `yaml:"agent"`
 	MQTT   MQTTConfig   `yaml:"mqtt"`
 	Lab    LabConfig    `yaml:"lab"`
+	Server ServerConfig `yaml:"server"`
+}
+
+// ServerConfig holds HTTP API fallback settings.
+type ServerConfig struct {
+	URL string `yaml:"url"`
 }
 
 // AgentConfig holds agent-specific settings.

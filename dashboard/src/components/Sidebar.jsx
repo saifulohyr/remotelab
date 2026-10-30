@@ -5,8 +5,7 @@ import {
   Calendar, 
   Terminal, 
   ChevronRight,
-  Shield,
-  Layers
+  Shield
 } from 'lucide-react';
 
 export default function Sidebar({ activeTab, setActiveTab, selectedLabId, setSelectedLabId, labs = [] }) {

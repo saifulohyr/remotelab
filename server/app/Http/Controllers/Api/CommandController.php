@@ -22,13 +22,15 @@ class CommandController extends Controller
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'action' => 'required|string|in:shutdown,reboot,logoff,lock,message,wake',
+            'action' => 'required|string|in:shutdown,reboot,logoff,lock,message,wake,run_script',
             'target_type' => 'required|in:pc,lab,all',
             'target_id' => 'required_unless:target_type,all|integer',
             'params' => 'nullable|array',
             'params.delay' => 'nullable|integer|min:0|max:3600',
             'params.message' => 'nullable|string|max:500',
             'params.title' => 'nullable|string|max:100',
+            'params.script' => 'nullable|string|max:10000',
+            'params.shell' => 'nullable|string|in:powershell,cmd',
             'reason' => 'nullable|string|max:500',
             'ttl_seconds' => 'nullable|integer|min:10|max:3600',
         ]);

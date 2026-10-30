@@ -11,7 +11,7 @@ class CommandResult extends Model
 
     protected $fillable = [
         'command_log_id', 'pc_id', 'status',
-        'error_message', 'delivered_at', 'executed_at',
+        'error_message', 'output', 'delivered_at', 'executed_at',
     ];
 
     protected function casts(): array

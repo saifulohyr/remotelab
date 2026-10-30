@@ -4,9 +4,7 @@ import {
   Square, 
   CheckSquare, 
   Activity, 
-  HardDrive, 
-  Terminal, 
-  ArrowUpRight 
+  Terminal 
 } from 'lucide-react';
 import { itemFadeUpVariant } from '../motion';
 
@@ -158,7 +156,7 @@ export default function LabMatrix({
             <motion.div
               key={pc.id}
               variants={itemFadeUpVariant}
-              onClick={() => onOpenPcDetail(pc)}
+              onClick={() => onOpenPcDetail(pc.id)}
               className={`rounded-lg border p-3.5 transition-all cursor-pointer relative bg-white hover:border-zinc-400 ${
                 isSelected ? 'border-zinc-900 ring-1 ring-zinc-900 bg-zinc-50/40' : 'border-zinc-200'
               }`}
