@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"os/exec"
 	"runtime"
 	"time"
@@ -94,16 +95,43 @@ func (e *SystemExecutor) SendMessage(title, message string) error {
 
 // RunScript executes a PowerShell or CMD script with timeout and returns output.
 func (e *SystemExecutor) RunScript(script, shell string) (string, error) {
-	log.Printf("[WinAPI] RunScript requested (shell=%s): %s", shell, script)
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	log.Printf("[WinAPI] RunScript requested (shell=%s)", shell)
+	ctx, cancel := context.WithTimeout(context.Background(), 45*time.Second)
 	defer cancel()
 
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
 		if shell == "cmd" {
-			cmd = exec.CommandContext(ctx, "cmd.exe", "/c", script)
+			tmpFile, err := os.CreateTemp("", "simlab_*.bat")
+			if err != nil {
+				return "", fmt.Errorf("gagal membuat file temporary bat: %w", err)
+			}
+			tmpPath := tmpFile.Name()
+			defer os.Remove(tmpPath)
+
+			content := "@echo off\r\n" + script + "\r\n"
+			if _, err := tmpFile.WriteString(content); err != nil {
+				tmpFile.Close()
+				return "", fmt.Errorf("gagal menulis file script bat: %w", err)
+			}
+			tmpFile.Close()
+
+			cmd = exec.CommandContext(ctx, "cmd.exe", "/c", tmpPath)
 		} else {
-			cmd = exec.CommandContext(ctx, "powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-Command", script)
+			tmpFile, err := os.CreateTemp("", "simlab_*.ps1")
+			if err != nil {
+				return "", fmt.Errorf("gagal membuat file temporary ps1: %w", err)
+			}
+			tmpPath := tmpFile.Name()
+			defer os.Remove(tmpPath)
+
+			if _, err := tmpFile.WriteString(script); err != nil {
+				tmpFile.Close()
+				return "", fmt.Errorf("gagal menulis file script ps1: %w", err)
+			}
+			tmpFile.Close()
+
+			cmd = exec.CommandContext(ctx, "powershell.exe", "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", tmpPath)
 		}
 	} else {
 		cmd = exec.CommandContext(ctx, "sh", "-c", script)
@@ -112,7 +140,7 @@ func (e *SystemExecutor) RunScript(script, shell string) (string, error) {
 	outputBytes, err := cmd.CombinedOutput()
 	output := string(outputBytes)
 	if ctx.Err() == context.DeadlineExceeded {
-		return output, fmt.Errorf("eksekusi timeout (melebihi 30 detik)")
+		return output, fmt.Errorf("eksekusi timeout (melebihi batas waktu)")
 	}
 	return output, err
 }
