@@ -1,97 +1,225 @@
 import React, { useState } from 'react';
-import { X, Send, Terminal, AlertCircle, CheckCircle2, BookOpen, Sparkles, ChevronDown } from 'lucide-react';
+import { X, Send, Terminal, AlertCircle, CheckCircle2, ChevronDown, Trash2, RotateCcw } from 'lucide-react';
 import { api } from '../api';
 
 const SCRIPT_TEMPLATES = [
+  // --- KATEGORI 1: APLIKASI CBT & UJIAN ---
   {
     id: 'open_exambro',
-    category: 'Aplikasi CBT / Ujian',
+    category: 'Aplikasi CBT & Ujian',
     name: 'Buka ExamBrowser (CBT / ANBK)',
     shell: 'powershell',
-    description: 'Mencari file ExamBrowser di drive C/D dan menjalankannya secara interaktif ke layar monitor siswa.',
+    description: 'Mencari file ExamBrowser di drive C: atau D: dan meluncurkannya langsung ke monitor desktop siswa secara interaktif.',
     script: `$path = (Get-ChildItem -Path "C:\\", "D:\\" -Filter "ExamBrowser*.exe" -Recurse -Depth 3 -ErrorAction SilentlyContinue | Select-Object -First 1).FullName
 if ($path) {
   schtasks /create /tn "RunExam" /tr ('"' + $path + '"') /sc once /st 00:00 /it /f
   schtasks /run /tn "RunExam"
   Start-Sleep -Seconds 2
   schtasks /delete /tn "RunExam" /f
-  Write-Output "Berhasil membuka ExamBrowser: $path"
+  Write-Output "Berhasil meluncurkan ExamBrowser: $path"
 } else {
   Write-Error "File ExamBrowser*.exe tidak ditemukan di drive C: atau D:"
 }`
   },
   {
     id: 'close_exambro',
-    category: 'Aplikasi CBT / Ujian',
-    name: 'Tutup Paksa ExamBrowser',
+    category: 'Aplikasi CBT & Ujian',
+    name: 'Tutup Paksa ExamBrowser (Force Close)',
     shell: 'cmd',
-    description: 'Menghentikan paksa seluruh proses ExamBrowser.exe dan ExamBrowserClient.exe yang berjalan.',
-    script: `taskkill /F /IM ExamBrowser.exe /T
-taskkill /F /IM ExamBrowserClient.exe /T`
+    description: 'Menghentikan seketika proses ExamBrowser.exe dan ExamBrowserClient.exe yang sedang berjalan di workstation.',
+    script: `taskkill /F /IM ExamBrowser.exe /T 2>nul
+taskkill /F /IM ExamBrowserClient.exe /T 2>nul
+echo Proses ExamBrowser berhasil dihentikan.`
   },
+  {
+    id: 'close_all_browsers',
+    category: 'Aplikasi CBT & Ujian',
+    name: 'Tutup Semua Web Browser (Chrome, Edge, Firefox)',
+    shell: 'cmd',
+    description: 'Menutup paksa seluruh browser siswa agar workstation steril dari browsing luar saat sesi ujian.',
+    script: `taskkill /F /IM chrome.exe /T 2>nul
+taskkill /F /IM msedge.exe /T 2>nul
+taskkill /F /IM firefox.exe /T 2>nul
+taskkill /F /IM opera.exe /T 2>nul
+taskkill /F /IM brave.exe /T 2>nul
+echo Seluruh aplikasi browser berhasil ditutup.`
+  },
+
+  // --- KATEGORI 2: JARINGAN & KONEKSI ---
   {
     id: 'reset_ip',
     category: 'Jaringan & Koneksi',
     name: 'Reset IP Address & Flush DNS',
     shell: 'cmd',
-    description: 'Membersihkan cache DNS Windows, melepaskan alamat IP DHCP lama, dan meminta IP baru dari router.',
+    description: 'Membersihkan cache DNS lokal, melepaskan sewa IP lama ke router, dan meminta IP DHCP baru.',
     script: `ipconfig /flushdns
 ipconfig /release
-ipconfig /renew`
+ipconfig /renew
+echo Pembaruan IP Address dan Flush DNS selesai.`
   },
   {
     id: 'test_connection',
     category: 'Jaringan & Koneksi',
     name: 'Diagnosa Jaringan (Ping Gateway & Internet)',
     shell: 'powershell',
-    description: 'Menguji latensi dan status koneksi ke Gateway LAN (192.168.1.1) dan DNS Publik (1.1.1.1).',
-    script: `Write-Output "--- PING LOCAL GATEWAY (192.168.1.1) ---"
+    description: 'Menguji waktu respons (latency) ke Router Gateway lokal (192.168.1.1) dan DNS Publik (1.1.1.1).',
+    script: `Write-Output "=== PING ROUTER GATEWAY (192.168.1.1) ==="
 Test-Connection -ComputerName 192.168.1.1 -Count 2 | Select-Object Address, IPv4Address, ResponseTime
-Write-Output "--- PING INTERNET CLOUDFLARE (1.1.1.1) ---"
+Write-Output "=== PING INTERNET CLOUDFLARE (1.1.1.1) ==="
 Test-Connection -ComputerName 1.1.1.1 -Count 2 | Select-Object Address, IPv4Address, ResponseTime`
   },
   {
-    id: 'clean_temp',
-    category: 'Pemeliharaan Sistem',
-    name: 'Bersihkan File Sampah & Cache Temp',
+    id: 'sync_time_ntp',
+    category: 'Jaringan & Koneksi',
+    name: 'Sinkronisasi Waktu Jam (NTP Windows Time)',
     shell: 'cmd',
-    description: 'Menghapus file temporary Windows, user cache, dan mengosongkan Recycle Bin untuk melegakan disk.',
+    description: 'Memaksa workstation menyelaraskan tanggal dan jam sistem dengan server waktu Windows / NTP.',
+    script: `net start w32time 2>nul
+w32tm /resync /force
+echo Sinkronisasi jam sistem selesai.`
+  },
+  {
+    id: 'disable_wifi',
+    category: 'Jaringan & Koneksi',
+    name: 'Matikan Adapter Wi-Fi (Paksa Pakai Kabel LAN)',
+    shell: 'cmd',
+    description: 'Menonaktifkan adaptor nirkabel Wi-Fi agar lalu lintas data workstation hanya menggunakan kabel Ethernet LAN.',
+    script: `netsh interface set interface "Wi-Fi" admin=disable
+echo Adaptor Wi-Fi telah dinonaktifkan.`
+  },
+  {
+    id: 'enable_wifi',
+    category: 'Jaringan & Koneksi',
+    name: 'Aktifkan Adapter Wi-Fi',
+    shell: 'cmd',
+    description: 'Mengaktifkan kembali adaptor nirkabel Wi-Fi workstation.',
+    script: `netsh interface set interface "Wi-Fi" admin=enable
+echo Adaptor Wi-Fi telah diaktifkan kembali.`
+  },
+
+  // --- KATEGORI 3: AUDIO & DISPLAY ---
+  {
+    id: 'reset_audio',
+    category: 'Audio & Tampilan',
+    name: 'Perbaiki Layanan Audio (Restart Windows Audio)',
+    shell: 'cmd',
+    description: 'Merestart service audio Windows jika headset atau speaker siswa tidak mengeluarkan suara.',
+    script: `net stop Audiosrv /y
+net start Audiosrv
+echo Layanan audio Windows berhasil direstart.`
+  },
+  {
+    id: 'restart_explorer',
+    category: 'Audio & Tampilan',
+    name: 'Restart Windows Explorer (Perbaiki Taskbar/Desktop Freeze)',
+    shell: 'cmd',
+    description: 'Menutup dan menjalankan ulang Explorer shell jika tampilan taskbar macet atau layar desktop nge-freeze.',
+    script: `taskkill /F /IM explorer.exe
+start explorer.exe
+echo Windows Explorer berhasil direstart.`
+  },
+
+  // --- KATEGORI 4: KEAMANAN & KONTROL PERANGKAT ---
+  {
+    id: 'disable_usb',
+    category: 'Keamanan & Perangkat',
+    name: 'Kunci / Blokir USB Flashdisk (Disable USB Storage)',
+    shell: 'cmd',
+    description: 'Menonaktifkan port penyimpanan USB agar siswa tidak dapat mencolokkan flashdisk sembarangan.',
+    script: `reg add "HKLM\\SYSTEM\\CurrentControlSet\\Services\\USBSTOR" /v Start /t REG_DWORD /d 4 /f
+echo Port USB Storage berhasil DIBLOKIR.`
+  },
+  {
+    id: 'enable_usb',
+    category: 'Keamanan & Perangkat',
+    name: 'Buka Blokir Port USB Flashdisk (Enable USB Storage)',
+    shell: 'cmd',
+    description: 'Mengaktifkan kembali port penyimpanan flashdisk USB workstation ke mode normal.',
+    script: `reg add "HKLM\\SYSTEM\\CurrentControlSet\\Services\\USBSTOR" /v Start /t REG_DWORD /d 3 /f
+echo Port USB Storage berhasil DIAKTIFKAN kembali.`
+  },
+  {
+    id: 'check_firewall',
+    category: 'Keamanan & Perangkat',
+    name: 'Cek Status Windows Firewall',
+    shell: 'cmd',
+    description: 'Mengecek apakah proteksi firewall pada profil Domain, Private, dan Public aktif.',
+    script: `netsh advfirewall show allprofiles state`
+  },
+
+  // --- KATEGORI 5: PEMELIHARAAN & KINERJA PC ---
+  {
+    id: 'clean_temp',
+    category: 'Pemeliharaan & Kinerja PC',
+    name: 'Bersihkan File Sampah & Cache Temp Windows',
+    shell: 'cmd',
+    description: 'Menghapus file temporary di direktori %temp%, Windows Temp, dan mengosongkan Recycle Bin.',
     script: `del /s /f /q %temp%\\*.* 2>nul
 del /s /f /q C:\\Windows\\Temp\\*.* 2>nul
 PowerShell -Command "Clear-RecycleBin -Force -ErrorAction SilentlyContinue"
-echo Pembersihan cache dan file temporary selesai.`
+echo Pembersihan cache dan file sampah temporary selesai.`
   },
   {
     id: 'top_processes',
-    category: 'Pemeliharaan Sistem',
+    category: 'Pemeliharaan & Kinerja PC',
     name: 'Daftar 10 Proses CPU & RAM Tertinggi',
     shell: 'powershell',
     description: 'Menampilkan 10 aplikasi atau background process yang paling banyak memakan CPU dan memori.',
     script: `Get-Process | Sort-Object WorkingSet -Descending | Select-Object -First 10 -Property Id, ProcessName, @{Name="RAM(MB)";Expression={[math]::Round($_.WorkingSet/1MB,1)}}, @{Name="CPU(s)";Expression={[math]::Round($_.CPU,1)}} | Format-Table -AutoSize`
   },
   {
-    id: 'restart_veyon',
-    category: 'Layanan Lab',
-    name: 'Restart Layanan Veyon Service',
-    shell: 'cmd',
-    description: 'Merestart service Veyon agar PC klien kembali terhubung ke Veyon Master guru/lab.',
-    script: `net stop VeyonService
-net start VeyonService`
-  },
-  {
     id: 'disk_space',
-    category: 'Pemeliharaan Sistem',
+    category: 'Pemeliharaan & Kinerja PC',
     name: 'Cek Sisa Kapasitas Harddisk (C: & D:)',
     shell: 'powershell',
     description: 'Mengecek ukuran total, ruang kosong, dan persentase kapasitas drive C dan D.',
     script: `Get-PSDrive -PSProvider FileSystem | Select-Object Name, @{Name="Free(GB)";Expression={[math]::Round($_.Free/1GB,2)}}, @{Name="Total(GB)";Expression={[math]::Round(($_.Used + $_.Free)/1GB,2)}} | Format-Table -AutoSize`
   },
   {
+    id: 'show_uptime',
+    category: 'Pemeliharaan & Kinerja PC',
+    name: 'Cek Waktu Uptime & Jam Boot Terakhir PC',
+    shell: 'powershell',
+    description: 'Mengecek kapan PC terakhir kali dinyalakan dan berapa lama telah menyala nonstop.',
+    script: `(Get-CimInstance -ClassName Win32_OperatingSystem) | Select-Object @{Name="LastBootUpTime";Expression={$_.LastBootUpTime}}, @{Name="Uptime";Expression={(Get-Date) - $_.LastBootUpTime}} | Format-List`
+  },
+  {
+    id: 'show_installed_apps',
+    category: 'Pemeliharaan & Kinerja PC',
+    name: 'Daftar Software & Aplikasi Terinstal',
+    shell: 'powershell',
+    description: 'Menampilkan daftar aplikasi pihak ketiga yang terpasang di workstation Windows.',
+    script: `Get-ItemProperty HKLM:\\Software\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\*, HKLM:\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\* | Where-Object { $_.DisplayName -ne $null } | Select-Object DisplayName, DisplayVersion, Publisher | Sort-Object DisplayName | Format-Table -AutoSize`
+  },
+
+  // --- KATEGORI 6: LAYANAN LAB & SISTEM ---
+  {
+    id: 'restart_veyon',
+    category: 'Layanan Lab & Sistem',
+    name: 'Restart Layanan Veyon Service',
+    shell: 'cmd',
+    description: 'Merestart service background Veyon agar PC klien kembali terhubung ke Veyon Master.',
+    script: `net stop VeyonService
+net start VeyonService
+echo Layanan Veyon Service berhasil direstart.`
+  },
+  {
+    id: 'cancel_shutdown',
+    category: 'Layanan Lab & Sistem',
+    name: 'Batalkan Shutdown / Restart Berjangka (Abort)',
+    shell: 'cmd',
+    description: 'Membatalkan proses shutdown atau reboot otomatis yang sedang dalam hitungan mundur.',
+    script: `shutdown /a
+echo Perintah shutdown/reboot berhasil dibatalkan.`
+  },
+
+  // --- KATEGORI 7: KUSTOM ---
+  {
     id: 'custom',
     category: 'Kustom',
-    name: 'Kustom (Tulis Skrip Sendiri)',
+    name: '⚡ Kustom (Tulis Skrip Sendiri)',
     shell: 'powershell',
-    description: 'Ketik baris perintah PowerShell atau CMD sendiri sesuai kebutuhan spesifik.',
+    description: 'Area input kosong untuk mengetik baris perintah PowerShell atau Command Prompt sendiri.',
     script: ''
   }
 ];
@@ -121,9 +249,25 @@ export default function CommandModal({
     const tmpl = SCRIPT_TEMPLATES.find((t) => t.id === templateId);
     if (tmpl) {
       setShell(tmpl.shell);
-      if (tmpl.id !== 'custom') {
+      // BUG FIX: Saat memilih 'custom', bersihkan skrip agar textarea langsung kosong dan siap diketik.
+      if (tmpl.id === 'custom') {
+        setScript('');
+      } else {
         setScript(tmpl.script);
       }
+    }
+  };
+
+  const handleClearScript = () => {
+    setScript('');
+    setSelectedTemplateId('custom');
+  };
+
+  const handleResetToTemplate = () => {
+    const tmpl = SCRIPT_TEMPLATES.find((t) => t.id === selectedTemplateId);
+    if (tmpl) {
+      setScript(tmpl.script);
+      setShell(tmpl.shell);
     }
   };
 
@@ -227,8 +371,8 @@ export default function CommandModal({
               {/* Template Selector Dropdown */}
               <div>
                 <label className="block text-[11px] font-semibold text-zinc-700 uppercase tracking-wider mb-1.5 font-mono flex items-center justify-between">
-                  <span>Template Skrip Siap Pakai</span>
-                  <span className="text-[10px] text-zinc-400 font-normal lowercase">library otomatisasi</span>
+                  <span>Pustaka Template Skrip</span>
+                  <span className="text-[10px] text-zinc-400 font-normal lowercase">{SCRIPT_TEMPLATES.length} preset tersedia</span>
                 </label>
                 <div className="relative">
                   <select
@@ -306,10 +450,34 @@ export default function CommandModal({
 
               {/* Script Editor */}
               <div>
-                <label className="block text-[11px] font-semibold text-zinc-700 uppercase tracking-wider mb-1.5 font-mono flex items-center justify-between">
-                  <span>Pratinjau / Edit Skrip</span>
-                  <span className="text-[10px] text-zinc-400 font-normal lowercase">dapat diedit sebelum kirim</span>
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[11px] font-semibold text-zinc-700 uppercase tracking-wider font-mono">
+                    Pratinjau / Tulis Baris Skrip
+                  </label>
+                  <div className="flex items-center gap-1.5">
+                    {selectedTemplateId !== 'custom' && (
+                      <button
+                        type="button"
+                        onClick={handleResetToTemplate}
+                        title="Kembalikan skrip ke isi template awal"
+                        className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-100 hover:bg-zinc-200 text-zinc-600 transition-colors"
+                      >
+                        <RotateCcw className="w-2.5 h-2.5" />
+                        <span>Reset</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={handleClearScript}
+                      title="Kosongkan teks skrip untuk menulis dari awal"
+                      className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-100 hover:bg-zinc-200 text-zinc-600 hover:text-rose-600 transition-colors"
+                    >
+                      <Trash2 className="w-2.5 h-2.5" />
+                      <span>Kosongkan</span>
+                    </button>
+                  </div>
+                </div>
+
                 <textarea
                   rows={4}
                   value={script}
@@ -319,7 +487,7 @@ export default function CommandModal({
                       setSelectedTemplateId('custom');
                     }
                   }}
-                  placeholder="Ketik baris perintah CLI di sini..."
+                  placeholder="Ketik baris perintah CLI secara manual di sini..."
                   className="w-full font-mono bg-zinc-900 text-zinc-100 rounded-xl p-3 text-xs focus:outline-none focus:ring-1 focus:ring-zinc-700 leading-relaxed selection:bg-zinc-700 resize-y"
                   required
                 />
