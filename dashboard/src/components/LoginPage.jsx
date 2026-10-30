@@ -30,12 +30,12 @@ export default function LoginPage({ onLoginSuccess }) {
       <div className="w-full max-w-5xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <div className="w-7 h-7 rounded-md overflow-hidden border border-zinc-200 shadow-2xs flex items-center justify-center bg-white shrink-0">
-            <img src="/logomuma.jpg" alt="Logo SMK Muhammadiyah 1" className="w-full h-full object-cover" />
+            <img src="/logomuma.jpg" alt="Logo SMK MUHAMMADIYAH MAJENANG" className="w-full h-full object-cover" />
           </div>
           <span className="text-xs font-semibold text-zinc-900 tracking-tight font-mono">SIMLab</span>
         </div>
         <div className="text-[11px] text-zinc-400 font-mono">
-          SMK Muhammadiyah 1 Cilacap
+          SMK MUHAMMADIYAH MAJENANG
         </div>
       </div>
 
@@ -116,7 +116,7 @@ export default function LoginPage({ onLoginSuccess }) {
 
       {/* Footer */}
       <div className="w-full max-w-5xl mx-auto text-center text-[11px] font-mono text-zinc-400">
-        &copy; {new Date().getFullYear()} SIMLab &bull; SMK Muhammadiyah 1 Cilacap
+        &copy; {new Date().getFullYear()} SIMLab &bull; SMK MUHAMMADIYAH MAJENANG
       </div>
     </div>
   );

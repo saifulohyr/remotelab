@@ -22,14 +22,14 @@ export default function Sidebar({ activeTab, setActiveTab, selectedLabId, setSel
         {/* Brand Header */}
         <div className="flex items-center gap-3 px-3 py-3 mb-6 border-b border-zinc-200/60 pb-5">
           <div className="w-8 h-8 rounded-lg overflow-hidden border border-zinc-200 shadow-2xs flex items-center justify-center bg-white shrink-0">
-            <img src="/logomuma.jpg" alt="Logo SMK Muhammadiyah 1" className="w-full h-full object-cover" />
+            <img src="/logomuma.jpg" alt="Logo SMK MUHAMMADIYAH MAJENANG" className="w-full h-full object-cover" />
           </div>
           <div>
             <h1 className="font-semibold text-zinc-900 text-sm tracking-tight leading-none flex items-center gap-1.5">
               SIMLab
               <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-zinc-200/70 text-zinc-700 font-normal">v14</span>
             </h1>
-            <p className="text-[11px] text-zinc-400 mt-1 font-mono tracking-tight">labmuma.xyz/simlab</p>
+            <p className="text-[10px] text-zinc-400 mt-1 font-mono tracking-tight">SMK MUHAMMADIYAH MAJENANG</p>
           </div>
         </div>
 
