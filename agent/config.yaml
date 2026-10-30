@@ -1,18 +1,24 @@
 # SIMLab Agent Configuration
 agent:
   version: "1.0.0"
-  telemetry_interval: 15   # seconds between telemetry reports
+  telemetry_interval: 15   # interval laporan telemetri & polling perintah (detik)
   log_level: "info"
 
-mqtt:
-  broker_host: "192.168.1.100"  # Change to your MQTT broker IP
-  broker_port: 8883
-  username: "agent-lab1-pc01"   # Unique per agent
-  password: "changeme"          # Unique per agent
-  use_tls: true
-  ca_cert_path: ""              # Path to CA certificate for TLS validation
-  keep_alive: 10                # seconds (LWT triggers after 1.5x this)
+# Jalur Online Cloud (Internet / Cloudflare Tunnel)
+server:
+  url: "https://simlab.labmuma.xyz"
 
+# Jalur MQTT (Direct LAN Lokal)
+mqtt:
+  broker_host: "192.168.1.2"
+  broker_port: 1883
+  username: "agent-lab1-pc01"
+  password: "changeme"
+  use_tls: false
+  ca_cert_path: ""
+  keep_alive: 10
+
+# Identitas Workstation (Otomatis mendeteksi nama PC)
 lab:
-  lab_id: "lab1"                # Lab identifier
-  pc_id: "pc01"                 # PC identifier within lab
+  lab_id: "auto"
+  pc_id: "auto"

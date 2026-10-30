@@ -62,7 +62,7 @@ type telemetryResponse struct {
 func (p *program) sendHTTPTelemetry(data telemetry.Data) {
 	serverURL := p.cfg.Server.URL
 	if serverURL == "" {
-		serverURL = "http://192.168.1.2:8000"
+		serverURL = "https://simlab.labmuma.xyz"
 	}
 	telemetryURL := strings.TrimRight(serverURL, "/") + "/api/telemetry"
 	ackURL := strings.TrimRight(serverURL, "/") + "/api/commands/ack"
