@@ -70,11 +70,13 @@ func (p *program) sendHTTPTelemetry(data telemetry.Data) {
 	hostname, _ := os.Hostname()
 
 	payload := map[string]interface{}{
-		"lab_id":   p.cfg.Lab.LabID,
-		"pc_id":    p.cfg.Lab.PCID,
-		"hostname": hostname,
-		"status":   "online",
-		"version":  p.cfg.Agent.Version,
+		"lab_id":      p.cfg.Lab.LabID,
+		"pc_id":       p.cfg.Lab.PCID,
+		"hostname":    hostname,
+		"status":      "online",
+		"version":     p.cfg.Agent.Version,
+		"ip_address":  data.IPAddress,
+		"mac_address": data.MACAddress,
 		"metrics": map[string]interface{}{
 			"cpu_percent":  data.CPUPercent,
 			"ram_percent":  data.RAMPercent,

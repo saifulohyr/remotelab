@@ -103,17 +103,41 @@ class CommandController extends Controller
             );
         }
 
-        // Handle wake action via relay
+        // Handle wake action via peer relay (PC yang sedang online di lab yang sama)
         if ($action === 'wake') {
             $macsByLab = $pcs->groupBy('lab_id');
             foreach ($macsByLab as $labId => $labPcs) {
                 $lab = Lab::find($labId);
-                $macs = $labPcs->where('wol_enabled', true)->pluck('mac_address')->toArray();
-                if (!empty($macs)) {
-                    MqttPublisher::publish(
-                        "simlab/{$lab->slug}/relay/wake",
-                        ['macs' => $macs, 'command_id' => $commandId]
-                    );
+                $macs = $labPcs->pluck('mac_address')->filter()->values()->toArray();
+                if (empty($macs)) {
+                    continue;
+                }
+
+                // 1. MQTT relay (jika satu LAN dengan Debian)
+                MqttPublisher::publish(
+                    "simlab/{$lab->slug}/relay/wake",
+                    ['macs' => $macs, 'command_id' => $commandId]
+                );
+
+                // 2. Cloud Peer-Relay: cari PC di lab ini yang sedang ONLINE (misal PC Guru)
+                $onlineRelayPc = Pc::where('lab_id', $labId)
+                    ->where('status', 'online')
+                    ->where('last_seen_at', '>=', now()->subMinutes(2))
+                    ->first();
+
+                if ($onlineRelayPc) {
+                    // Buat penugasan perintah wake ke PC yang online ini agar diambil via HTTP polling
+                    CommandResult::create([
+                        'command_log_id' => $commandLog->id,
+                        'pc_id' => $onlineRelayPc->id,
+                        'status' => 'pending',
+                    ]);
+                    // Update parameter params di commandLog agar membawa MAC target
+                    $commandLog->update([
+                        'params' => array_merge($commandLog->params ?? [], [
+                            'mac' => implode(',', $macs),
+                        ]),
+                    ]);
                 }
             }
         }

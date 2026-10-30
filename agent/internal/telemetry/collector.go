@@ -22,6 +22,7 @@ type Data struct {
 	UptimeSeconds uint64  `json:"uptime_seconds"`
 	Hostname      string  `json:"hostname"`
 	IPAddress     string  `json:"ip_address"`
+	MACAddress    string  `json:"mac_address"`
 	AgentVersion  string  `json:"agent_version"`
 	OS            string  `json:"os"`
 	Timestamp     int64   `json:"timestamp"`
@@ -80,6 +81,9 @@ func Collect(agentVersion string) Data {
 	// Primary IP address
 	data.IPAddress = getPrimaryIP()
 
+	// MAC address of primary network interface
+	data.MACAddress = getPrimaryMAC()
+
 	return data
 }
 
@@ -107,4 +111,44 @@ func getPrimaryIP() string {
 // roundTo2 rounds a float64 to 2 decimal places.
 func roundTo2(val float64) float64 {
 	return float64(int(val*100)) / 100
+}
+
+// getPrimaryMAC returns the MAC address of the primary active network interface.
+func getPrimaryMAC() string {
+	// Try to find MAC of the interface that has the primary IP
+	primaryIP := getPrimaryIP()
+	if primaryIP != "" && primaryIP != "unknown" {
+		ifaces, err := net.Interfaces()
+		if err == nil {
+			for _, iface := range ifaces {
+				if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+					continue
+				}
+				if len(iface.HardwareAddr) == 0 {
+					continue
+				}
+				addrs, err := iface.Addrs()
+				if err != nil {
+					continue
+				}
+				for _, addr := range addrs {
+					if ipnet, ok := addr.(*net.IPNet); ok && ipnet.IP.String() == primaryIP {
+						return iface.HardwareAddr.String()
+					}
+				}
+			}
+		}
+	}
+
+	// Fallback: return first non-loopback interface with a MAC
+	ifaces, err := net.Interfaces()
+	if err != nil {
+		return ""
+	}
+	for _, iface := range ifaces {
+		if iface.Flags&net.FlagUp != 0 && iface.Flags&net.FlagLoopback == 0 && len(iface.HardwareAddr) > 0 {
+			return iface.HardwareAddr.String()
+		}
+	}
+	return ""
 }

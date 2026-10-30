@@ -6,8 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"time"
+
+	"github.com/simlab/agent/internal/wol"
 )
 
 // AllowedActions defines the whitelist of permitted actions.
@@ -18,6 +21,7 @@ var AllowedActions = map[string]bool{
 	"lock":       true,
 	"message":    true,
 	"run_script": true,
+	"wake":       true,
 }
 
 // Command represents an incoming command from the server.
@@ -183,6 +187,22 @@ func (h *Handler) execute(cmd Command) (string, error) {
 			shell = "powershell"
 		}
 		return h.executor.RunScript(script, shell)
+	case "wake":
+		// WoL Relay: PC Guru menerima perintah ini dan memancarkan
+		// Magic Packet ke MAC address target di jaringan LAN lokal.
+		mac := cmd.Params["mac"]
+		if mac == "" {
+			return "", fmt.Errorf("parameter 'mac' diperlukan untuk aksi wake")
+		}
+		// Kirim ke beberapa MAC jika dipisahkan koma
+		macs := []string{}
+		for _, m := range strings.Split(mac, ",") {
+			m = strings.TrimSpace(m)
+			if m != "" {
+				macs = append(macs, m)
+			}
+		}
+		return wol.SendMagicPackets(macs)
 	default:
 		return "", fmt.Errorf("unsupported action: %s", cmd.Action)
 	}

@@ -26,6 +26,8 @@ class TelemetryIngestController extends Controller
             'hostname' => 'nullable|string',
             'status' => 'nullable|string',
             'version' => 'nullable|string',
+            'ip_address' => 'nullable|string',
+            'mac_address' => 'nullable|string',
             'uptime' => 'nullable|integer',
             'metrics' => 'nullable|array',
             'metrics.cpu_percent' => 'nullable|numeric',
@@ -63,14 +65,14 @@ class TelemetryIngestController extends Controller
         })->first();
 
         if (!$pc) {
-            $mac = sprintf('02:00:00:%02x:%02x:%02x', $lab ? $lab->id : 1, rand(1, 250), rand(1, 250));
+            $mac = !empty($validated['mac_address']) ? $validated['mac_address'] : sprintf('02:00:00:%02x:%02x:%02x', $lab ? $lab->id : 1, rand(1, 250), rand(1, 250));
             $pc = Pc::create([
                 'lab_id' => $lab ? $lab->id : 1,
                 'hostname' => $hostname,
                 'slug' => $pcSlug,
                 'mac_address' => $mac,
                 'status' => 'online',
-                'ip_address' => $request->ip(),
+                'ip_address' => $validated['ip_address'] ?? $request->ip(),
                 'agent_version' => $validated['version'] ?? '1.0.0',
                 'last_seen_at' => now(),
             ]);
@@ -86,7 +88,8 @@ class TelemetryIngestController extends Controller
 
             $pc->update([
                 'status' => $newStatus,
-                'ip_address' => $request->ip(),
+                'ip_address' => $validated['ip_address'] ?? $request->ip(),
+                'mac_address' => !empty($validated['mac_address']) ? $validated['mac_address'] : $pc->mac_address,
                 'agent_version' => $validated['version'] ?? $pc->agent_version,
                 'last_seen_at' => now(),
             ]);
