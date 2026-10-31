@@ -26,11 +26,11 @@ var AllowedActions = map[string]bool{
 
 // Command represents an incoming command from the server.
 type Command struct {
-	CommandID  string            `json:"command_id"`
-	Action     string            `json:"action"`
-	Params     map[string]string `json:"params,omitempty"`
-	IssuedAt   int64             `json:"issued_at"`
-	TTLSeconds int               `json:"ttl_seconds"`
+	CommandID  string                 `json:"command_id"`
+	Action     string                 `json:"action"`
+	Params     map[string]interface{} `json:"params,omitempty"`
+	IssuedAt   int64                  `json:"issued_at"`
+	TTLSeconds int                    `json:"ttl_seconds"`
 }
 
 // AckPayload represents the acknowledgment sent back to the server.
@@ -156,14 +156,8 @@ func (h *Handler) ExecuteDirect(cmd Command) AckPayload {
 
 // execute runs the command action via the system executor.
 func (h *Handler) execute(cmd Command) (string, error) {
-	delaySec := 30 // default delay for shutdown/reboot
-	if d, ok := cmd.Params["delay"]; ok {
-		fmt.Sscanf(d, "%d", &delaySec)
-	}
-	message := cmd.Params["message"]
-	if message == "" {
-		message = "Perintah dari SIMLab admin"
-	}
+	delaySec := getParamInt(cmd.Params, "delay", 0)
+	message := getParamString(cmd.Params, "message", "Perintah dari SIMLab admin")
 
 	switch cmd.Action {
 	case "shutdown":
@@ -175,22 +169,19 @@ func (h *Handler) execute(cmd Command) (string, error) {
 	case "lock":
 		return "", h.executor.Lock()
 	case "message":
-		title := cmd.Params["title"]
-		if title == "" {
-			title = "SIMLab"
-		}
+		title := getParamString(cmd.Params, "title", "SIMLab")
 		return "", h.executor.SendMessage(title, message)
 	case "run_script":
-		script := cmd.Params["script"]
-		shell := cmd.Params["shell"]
-		if shell == "" {
-			shell = "powershell"
+		script := getParamString(cmd.Params, "script", "")
+		shell := getParamString(cmd.Params, "shell", "powershell")
+		if script == "" {
+			return "", fmt.Errorf("script kosong")
 		}
 		return h.executor.RunScript(script, shell)
 	case "wake":
 		// WoL Relay: PC Guru menerima perintah ini dan memancarkan
 		// Magic Packet ke MAC address target di jaringan LAN lokal.
-		mac := cmd.Params["mac"]
+		mac := getParamString(cmd.Params, "mac", "")
 		if mac == "" {
 			return "", fmt.Errorf("parameter 'mac' diperlukan untuk aksi wake")
 		}
@@ -206,6 +197,49 @@ func (h *Handler) execute(cmd Command) (string, error) {
 	default:
 		return "", fmt.Errorf("unsupported action: %s", cmd.Action)
 	}
+}
+
+func getParamString(params map[string]interface{}, key, defaultVal string) string {
+	if params == nil {
+		return defaultVal
+	}
+	val, ok := params[key]
+	if !ok || val == nil {
+		return defaultVal
+	}
+	switch v := val.(type) {
+	case string:
+		if v == "" {
+			return defaultVal
+		}
+		return v
+	default:
+		return fmt.Sprintf("%v", v)
+	}
+}
+
+func getParamInt(params map[string]interface{}, key string, defaultVal int) int {
+	if params == nil {
+		return defaultVal
+	}
+	val, ok := params[key]
+	if !ok || val == nil {
+		return defaultVal
+	}
+	switch v := val.(type) {
+	case int:
+		return v
+	case int64:
+		return int(v)
+	case float64:
+		return int(v)
+	case string:
+		var n int
+		if _, err := fmt.Sscanf(v, "%d", &n); err == nil {
+			return n
+		}
+	}
+	return defaultVal
 }
 
 // cleanupLoop removes expired command IDs from the seen set every minute.

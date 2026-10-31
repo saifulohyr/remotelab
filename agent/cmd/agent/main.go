@@ -108,11 +108,16 @@ func (p *program) sendHTTPTelemetry(data telemetry.Data) {
 
 	var tr telemetryResponse
 	if err := json.Unmarshal(respBytes, &tr); err != nil {
+		log.Printf("[Telemetry] Gagal parse respon server: %v", err)
 		return
 	}
 
 	// Process any commands delivered via HTTP
+	if len(tr.Commands) > 0 {
+		log.Printf("[Command] Diterima %d perintah dari server", len(tr.Commands))
+	}
 	for _, cmd := range tr.Commands {
+		log.Printf("[Command] Menjalankan perintah: action=%s command_id=%s", cmd.Action, cmd.CommandID)
 		ack := p.cmdHandler.ExecuteDirect(cmd)
 
 		// Send ACK back via HTTP
@@ -132,6 +137,9 @@ func (p *program) sendHTTPTelemetry(data telemetry.Data) {
 				ackResp, err := p.httpClient.Do(ackReq)
 				if err == nil {
 					ackResp.Body.Close()
+					log.Printf("[Command] ACK berhasil dikirim ke server: command_id=%s status=%s", ack.CommandID, ack.Status)
+				} else {
+					log.Printf("[Command] Gagal kirim ACK ke server: %v", err)
 				}
 			}
 		}

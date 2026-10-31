@@ -215,6 +215,14 @@ class TelemetryIngestController extends Controller
             if ($pc) {
                 $query->where('pc_id', $pc->id);
             }
+        } elseif (!empty($validated['pc_id'])) {
+            $rawPc = strtolower(trim((string) $validated['pc_id']));
+            if ($rawPc === 'komguru' || str_contains($rawPc, 'guru')) {
+                $pc = Pc::where('hostname', 'like', '%KOMGURU%')->first();
+                if ($pc) {
+                    $query->where('pc_id', $pc->id);
+                }
+            }
         }
 
         $result = $query->first();

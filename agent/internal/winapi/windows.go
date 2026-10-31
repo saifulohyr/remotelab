@@ -5,6 +5,8 @@ package winapi
 
 import (
 	"fmt"
+	"os/exec"
+	"strings"
 	"syscall"
 	"unsafe"
 )
@@ -66,37 +68,49 @@ func logoffWindows() error {
 	return nil
 }
 
-// sendMessageWindows sends a message popup to all active user sessions via WTS API.
+// sendMessageWindows sends a message popup to active user sessions.
 func sendMessageWindows(title, message string) error {
 	sessions, err := getActiveSessions()
-	if err != nil {
-		return fmt.Errorf("failed to enumerate sessions: %w", err)
-	}
+	if err == nil && len(sessions) > 0 {
+		titleUTF16, _ := syscall.UTF16PtrFromString(title)
+		messageUTF16, _ := syscall.UTF16PtrFromString(message)
+		titleLen := uint32(len(title) * 2)
+		messageLen := uint32(len(message) * 2)
 
-	titleUTF16, _ := syscall.UTF16PtrFromString(title)
-	messageUTF16, _ := syscall.UTF16PtrFromString(message)
-	titleLen := uint32(len(title) * 2)
-	messageLen := uint32(len(message) * 2)
-
-	for _, sessionID := range sessions {
-		var response uint32
-		ret, _, callErr := procWTSSendMessage.Call(
-			WTS_CURRENT_SERVER_HANDLE,
-			uintptr(sessionID),
-			uintptr(unsafe.Pointer(titleUTF16)),
-			uintptr(titleLen),
-			uintptr(unsafe.Pointer(messageUTF16)),
-			uintptr(messageLen),
-			MB_OK|MB_ICONINFORMATION,
-			0,     // timeout (0 = no timeout)
-			uintptr(unsafe.Pointer(&response)),
-			0, // bWait = FALSE (don't block)
-		)
-		if ret == 0 {
-			return fmt.Errorf("WTSSendMessage failed for session %d: %v", sessionID, callErr)
+		success := false
+		for _, sessionID := range sessions {
+			var response uint32
+			ret, _, _ := procWTSSendMessage.Call(
+				WTS_CURRENT_SERVER_HANDLE,
+				uintptr(sessionID),
+				uintptr(unsafe.Pointer(titleUTF16)),
+				uintptr(titleLen),
+				uintptr(unsafe.Pointer(messageUTF16)),
+				uintptr(messageLen),
+				MB_OK|MB_ICONINFORMATION,
+				0, // timeout
+				uintptr(unsafe.Pointer(&response)),
+				0, // bWait = FALSE
+			)
+			if ret != 0 {
+				success = true
+			}
+		}
+		if success {
+			return nil
 		}
 	}
-	return nil
+
+	// Fallback 1: msg.exe (standard Windows notification)
+	if err := exec.Command("msg", "*", "/time:60", fmt.Sprintf("[%s]\n%s", title, message)).Run(); err == nil {
+		return nil
+	}
+
+	// Fallback 2: PowerShell MessageBox popup
+	cleanMsg := strings.ReplaceAll(message, "'", "''")
+	cleanTitle := strings.ReplaceAll(title, "'", "''")
+	psCmd := fmt.Sprintf(`Add-Type -AssemblyName PresentationFramework; [System.Windows.MessageBox]::Show('%s', '%s')`, cleanMsg, cleanTitle)
+	return exec.Command("powershell.exe", "-NoProfile", "-WindowStyle", "Hidden", "-Command", psCmd).Start()
 }
 
 // getActiveSessions returns a list of active user session IDs.
@@ -120,9 +134,26 @@ func getActiveSessions() ([]uint32, error) {
 	sessionSize := unsafe.Sizeof(WTS_SESSION_INFO{})
 	for i := uint32(0); i < count; i++ {
 		session := (*WTS_SESSION_INFO)(unsafe.Pointer(sessionInfo + uintptr(i)*sessionSize))
-		// Only include active sessions (not Session 0 which is the service session)
-		if session.State == WTSActive && session.SessionId > 0 {
+		if session.State == WTSActive {
 			sessions = append(sessions, session.SessionId)
+		}
+	}
+
+	// If no active session found via WTS, check console session
+	procConsole := kernel32.NewProc("WTSGetActiveConsoleSessionId")
+	if procConsole.Find() == nil {
+		cSession, _, _ := procConsole.Call()
+		if cSession != 0xFFFFFFFF {
+			found := false
+			for _, s := range sessions {
+				if s == uint32(cSession) {
+					found = true
+					break
+				}
+			}
+			if !found {
+				sessions = append(sessions, uint32(cSession))
+			}
 		}
 	}
 
