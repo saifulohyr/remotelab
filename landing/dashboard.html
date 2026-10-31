@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f7faff">
+    <meta name="description" content="Labmuma Portal — SMK MUHAMMADIYAH MAJENANG">
+    <title>Labmuma — SMK MUHAMMADIYAH MAJENANG</title>
+
+    <!-- Favicon -->
+    <link rel="icon" href="logomuma.jpg" type="image/x-icon">
+
+    <!-- Bootstrap 5 -->
+    <link
+        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+        rel="stylesheet"
+    >
+
+    <!-- Bootstrap Icons -->
+    <link
+        rel="stylesheet"
+        href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    >
+
+    <!-- Google Font -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+    >
+
+    <style>
+        :root {
+            --bg: #f7faff;
+            --bg-soft: #eef5ff;
+            --card: rgba(255, 255, 255, 0.92);
+            --border: #dbe5f1;
+            --text: #111827;
+            --muted: #5f6b7a;
+            --blue: #1a73e8;
+            --blue-soft: #e8f1ff;
+            --blue-hover: #dceaff;
+            --shadow: 0 4px 18px rgba(30, 70, 120, 0.06);
+            --topbar-bg: rgba(255, 255, 255, 0.86);
+            --hero-glow: rgba(225, 237, 255, 0.55);
+            --monitor-border: #cbdcf2;
+            --monitor-bar: #d9e8fb;
+            --monitor-user-bg: #e7f1ff;
+            --visual-bg: #ffffff;
+            --service-bg: rgba(255, 255, 255, 0.92);
+            --info-bg: rgba(255, 255, 255, 0.92);
+            --footer-border: #e0e7f0;
+        }
+
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            margin: 0;
+            background:
+                radial-gradient(
+                    circle at 50% 15%,
+                    var(--hero-glow),
+                    transparent 36%
+                ),
+                var(--bg);
+            color: var(--text);
+            font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont,
+                "Segoe UI", sans-serif;
+            min-height: 100vh;
+            transition: background-color 0.25s ease, color 0.25s ease;
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        .topbar {
+            min-height: 76px;
+            background: var(--topbar-bg);
+            border-bottom: 1px solid rgba(210, 222, 238, 0.75);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .brand {
+            color: #111 !important;
+            font-size: 1.35rem;
+            font-weight: 600;
+            letter-spacing: -0.04em;
+        }
+
+        .brand-icon {
+            width: 34px;
+            height: 34px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid #d6e0ee;
+            border-radius: 50%;
+            background: var(--visual-bg);
+            color: var(--text);
+            margin-right: 9px;
+        }
+
+        .top-action {
+            width: 42px;
+            height: 42px;
+            border: 0;
+            background: transparent;
+            color: var(--text);
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.35rem;
+            transition: 0.2s ease;
+        }
+
+        .top-action:hover {
+            background: var(--blue-soft);
+        }
+
+.avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--blue-soft);
+    color: var(--blue);
+    font-weight: 600;
+    border: 1px solid #d7e1f4;
+    cursor: pointer;
+    padding: 0;
+    overflow: hidden;
+}
+
+.avatar-logo {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
+    display: block;
+}
+        .main-container {
+            max-width: 980px;
+        }
+
+        .hero {
+            padding: 74px 0 54px;
+        }
+
+        .hero-title {
+            font-size: clamp(2rem, 4vw, 3rem);
+            line-height: 1.15;
+            font-weight: 600;
+            letter-spacing: -0.055em;
+            margin-bottom: 14px;
+        }
+
+        .hero-subtitle {
+            color: var(--muted);
+            font-size: 1.12rem;
+            margin-bottom: 0;
+        }
+
+        .hero-visual {
+            min-height: 210px;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cloud-shape {
+            width: 210px;
+            height: 110px;
+            border-radius: 70px;
+            background: #e7f1ff;
+            position: absolute;
+            opacity: 0.9;
+        }
+
+        .cloud-shape::before,
+        .cloud-shape::after {
+            content: "";
+            position: absolute;
+            background: var(--monitor-user-bg);
+            border-radius: 50%;
+        }
+
+        .cloud-shape::before {
+            width: 90px;
+            height: 90px;
+            left: 38px;
+            top: -38px;
+        }
+
+        .cloud-shape::after {
+            width: 75px;
+            height: 75px;
+            right: 28px;
+            top: -28px;
+        }
+
+        .monitor {
+            width: 170px;
+            height: 112px;
+            border: 5px solid var(--monitor-border);
+            background: var(--visual-bg);
+            border-radius: 9px;
+            position: relative;
+            z-index: 2;
+            box-shadow: 0 12px 30px rgba(54, 104, 170, 0.08);
+        }
+
+        .monitor-bar {
+            height: 20px;
+            background: var(--monitor-bar);
+            margin: 8px;
+            border-radius: 4px;
+        }
+
+        .monitor-user {
+            width: 43px;
+            height: 43px;
+            margin: 13px auto 0;
+            background: var(--monitor-user-bg);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #3980df;
+            font-size: 1.3rem;
+        }
+
+        .visual-icon {
+            position: absolute;
+            z-index: 3;
+            width: 58px;
+            height: 58px;
+            background: var(--visual-bg);
+            border: 1px solid var(--border);
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 8px 25px rgba(50, 90, 140, 0.07);
+            font-size: 1.7rem;
+        }
+
+        .visual-icon.left {
+            left: 7%;
+            top: 46%;
+            color: #1976d2;
+        }
+
+        .visual-icon.right {
+            right: 7%;
+            top: 35%;
+            color: var(--text);
+        }
+
+        .visual-icon.bottom {
+            right: 10%;
+            bottom: 5%;
+            color: #1976d2;
+        }
+
+        .section-title {
+            font-size: 1.35rem;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            margin-bottom: 20px;
+        }
+
+        .info-card {
+            background: var(--info-bg);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            min-height: 145px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .info-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 26px rgba(30, 70, 120, 0.09);
+        }
+
+        .info-icon {
+            width: 52px;
+            height: 52px;
+            flex: 0 0 52px;
+            border-radius: 50%;
+            background: var(--blue-soft);
+            color: var(--blue);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.45rem;
+        }
+
+        .info-title {
+            font-size: 1.05rem;
+            font-weight: 600;
+            margin-bottom: 7px;
+        }
+
+        .info-text {
+            color: var(--muted);
+            font-size: 0.91rem;
+            line-height: 1.65;
+            margin: 0;
+        }
+
+        .external-icon {
+            color: var(--text);
+            font-size: 1.25rem;
+        }
+
+        .services-section {
+            padding: 54px 0 80px;
+        }
+
+        .service-card {
+            height: 100%;
+            background: var(--service-bg);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+            transition:
+                transform 0.2s ease,
+                box-shadow 0.2s ease,
+                border-color 0.2s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .service-card.clickable-card {
+            cursor: pointer;
+        }
+
+        .service-card.clickable-card:hover {
+            border-color: #2563eb;
+            box-shadow: 0 14px 32px rgba(37, 99, 235, 0.12);
+        }
+
+        .service-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 30px rgba(30, 70, 120, 0.10);
+            border-color: #c8d9ee;
+        }
+
+        .service-icon {
+            width: 66px;
+            height: 66px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f1f6fd;
+            color: var(--blue);
+            font-size: 2.1rem;
+            margin-bottom: 22px;
+        }
+
+        .service-icon.ssh {
+            color: var(--text);
+            background: #f1f3f5;
+        }
+
+        .service-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            letter-spacing: -0.035em;
+            margin-bottom: 10px;
+        }
+
+        .service-description {
+            color: var(--muted);
+            line-height: 1.65;
+            font-size: 0.92rem;
+            min-height: 64px;
+            margin-bottom: 22px;
+        }
+
+        .service-url {
+            color: var(--muted);
+            font-size: 0.78rem;
+            margin-bottom: 16px;
+            word-break: break-all;
+        }
+
+        .service-button {
+            border: 0;
+            border-radius: 10px;
+            padding: 11px 15px;
+            background: var(--blue-soft);
+            color: var(--blue);
+	    font-weight: 500;
+            transition: 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            margin-top: auto;
+        }
+
+        .service-button:hover {
+            background: var(--blue-hover);
+            color: var(--blue);
+        }
+
+        .service-button i {
+            font-size: 1rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            display: inline-block;
+            border-radius: 50%;
+            background: #35a854;
+            margin-right: 5px;
+        }
+
+        .footer {
+            border-top: 1px solid var(--footer-border);
+            padding: 28px 0;
+            color: var(--muted);
+            font-size: 0.82rem;
+        }
+
+        .dropdown-menu {
+            border: 1px solid #dce5f0;
+            border-radius: 12px;
+            box-shadow: 0 12px 30px rgba(30, 60, 100, 0.10);
+            padding: 8px;
+        }
+
+        .dropdown-item {
+            border-radius: 8px;
+            padding: 9px 12px;
+        }
+
+        .dropdown-item:hover {
+            background: #eef5ff;
+        }
+
+        .toast-container {
+            z-index: 2000;
+        }
+
+        @media (max-width: 767.98px) {
+            .topbar {
+                min-height: 64px;
+            }
+
+            .hero {
+                padding-top: 42px;
+                padding-bottom: 25px;
+            }
+
+            .hero-visual {
+                min-height: 180px;
+                margin-top: 20px;
+            }
+
+            .visual-icon.left {
+                left: 13%;
+            }
+
+            .visual-icon.right {
+                right: 13%;
+            }
+
+            .visual-icon.bottom {
+                right: 17%;
+            }
+
+            .info-card {
+                min-height: auto;
+            }
+
+            .services-section {
+                padding-top: 38px;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            html {
+                scroll-behavior: auto;
+            }
+
+            *,
+            *::before,
+            *::after {
+                transition: none !important;
+            }
+        }
+-->
+    </style>
+</head>
+
+<body>
+
+    <!-- =========================
+         TOP NAVIGATION
+    ========================== -->
+    <header class="topbar">
+        <div class="container main-container">
+            <nav class="navbar px-0">
+                  <a class="brand d-flex align-items-center gap-2" href="">
+                    <span class="brand-icon">
+                        <i class="bi bi-compass"></i>
+                    </span>
+                    <span>Labmuma <small class="text-muted fw-normal ms-1 fs-6 d-none d-sm-inline">| SMK MUHAMMADIYAH MAJENANG</small></span>
+                </a>
+
+                <div class="ms-auto d-flex align-items-center gap-2">
+
+                    <button
+                        class="top-action"
+                        type="button"
+                        data-bs-toggle="modal"
+                        data-bs-target="#helpModal"
+                        aria-label="Bantuan"
+                        title="Bantuan"
+                    >
+                        <i class="bi bi-question-circle"></i>
+                    </button>
+
+                    <button
+                        class="top-action"
+                        type="button"
+                        id="appsButton"
+                        aria-label="Daftar aplikasi"
+                        title="Daftar aplikasi"
+                    >
+                        <i class="bi bi-grid-3x3-gap-fill"></i>
+                    </button>
+
+                    <div class="dropdown">
+                          <button
+                             class="avatar border-0"
+                             data-bs-toggle="dropdown"
+                             aria-expanded="false"
+                             aria-label="Menu pengguna"
+                           >
+                     <img
+                           src="logomuma.jpg"
+                           class="avatar-logo"
+                           alt="Logo SMK MUHAMMADIYAH MAJENANG"
+                      >
+                          </button>
+
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li>
+                                <h6 class="dropdown-header">
+                                    Labmuma
+                                </h6>
+                            </li>
+                            <li>
+                                <a class="dropdown-item" href="#services">
+                                    <i class="bi bi-grid me-2"></i>
+                                    Layanan
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                </div>
+            </nav>
+        </div>
+    </header>
+
+    <!-- =========================
+         MAIN CONTENT
+    ========================== -->
+    <main>
+
+        <!-- HERO -->
+        <section class="hero">
+            <div class="container main-container">
+                <div class="row align-items-center g-4">
+
+                    <div class="col-lg-6">
+                        <h1 class="hero-title">
+                            SMK MUHAMMADIYAH MAJENANG
+                        </h1>
+
+                        <p class="hero-subtitle">
+                            <div class="mt-4 p-3 rounded" style="background: var(--blue-soft); color: var(--blue); font-size: 0.9rem; font-weight: 500;">
+                                Sistem Monitoring & Manajemen Laboratorium Komputer Terpadu.
+                            </div>
+                            Akses cepat ke konsol SIMLab, Nextcloud, VNC, dan instrumen server.
+                        </p>
+                    </div>
+
+                    <div class="col-lg-6">
+                        <div class="hero-visual" aria-hidden="true">
+
+                            <div class="cloud-shape"></div>
+
+                            <div class="visual-icon left">
+                                <i class="bi bi-cloud"></i>
+                            </div>
+
+                            <div class="monitor">
+                                <div class="monitor-bar"></div>
+                                <div class="monitor-user">
+   					<i class="bi bi-person"></i>
+                                </div>
+                            </div>
+
+                            <div class="visual-icon right">
+                                <i class="bi bi-terminal"></i>
+                            </div>
+
+                            <div class="visual-icon bottom">
+                                <i class="bi bi-display"></i>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- INFORMATION CARDS -->
+        <section>
+            <div class="container main-container">
+
+                <div class="row g-4">
+
+                    <div class="col-md-6">
+                        <div class="info-card d-flex gap-3">
+
+                            <div class="info-icon">
+                                <i class="bi bi-cloud-arrow-down"></i>
+                            </div>
+
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between">
+                                    <h2 class="info-title">
+                                        Layanan Server
+                                    </h2>
+
+                                    <i class="bi bi-box-arrow-up-right external-icon"></i>
+                                </div>
+
+                                <p class="info-text">
+                                    Akses berbagai layanan yang tersedia
+                                    pada server Labmuma dari satu dashboard.
+                                </p>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="info-card d-flex gap-3">
+
+                            <div class="info-icon">
+                                <i class="bi bi-shield-check"></i>
+                            </div>
+
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between">
+                                    <h2 class="info-title">
+                                        Akses Terpusat
+                                    </h2>
+
+                                    <i class="bi bi-box-arrow-up-right external-icon"></i>
+                                </div>
+
+                                <p class="info-text">
+                                    Gunakan dashboard ini sebagai halaman
+                                    utama untuk membuka Nextcloud, SSH,
+                                    VNC, dan layanan lainnya.
+                                </p>
+                            </div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- SERVICES -->
+        <section class="services-section" id="services">
+            <div class="container main-container">
+
+                <div class="d-flex justify-content-between align-items-end mb-3">
+                    <div>
+                        <h2 class="section-title mb-1">
+                            Layanan Anda
+                        </h2>
+
+                        <p class="text-secondary small mb-0">
+                            <span class="status-dot"></span>
+                            Akses cepat ke layanan Labmuma
+                        </p>
+                    </div>
+                </div>
+
+                <div class="row g-4 justify-content-center">
+
+                    <!-- NEXTCLOUD -->
+                    <div class="col-lg-4 col-md-6">
+                        <article class="service-card">
+
+                            <div class="service-icon">
+                                <i class="bi bi-cloud"></i>
+                            </div>
+
+                            <h3 class="service-title">
+                                Nextcloud
+                            </h3>
+
+                            <p class="service-description">
+                                Akses file, folder, kalender, kontak,
+                                berbagi dokumen, dan layanan cloud pribadi
+                                Labmuma.
+                            </p>
+
+                            <div class="service-url">
+                                nas.labmuma.xyz
+                            </div>
+
+                            <a
+                                class="service-button"
+                                href="https://nas.labmuma.xyz"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Buka Nextcloud
+                                <i class="bi bi-box-arrow-up-right"></i>
+                            </a>
+
+                        </article>
+                    </div>
+
+                    <!-- SSH -->
+                    <div class="col-lg-4 col-md-6">
+                        <article class="service-card">
+
+                            <div class="service-icon ssh">
+                                <i class="bi bi-terminal"></i>
+                            </div>
+
+                            <h3 class="service-title">
+                                SSH
+                            </h3>
+
+                            <p class="service-description">
+                                Akses terminal server secara aman melalui
+                                layanan SSH berbasis web atau gateway
+                                terminal yang Anda sediakan.
+                            </p>
+
+                            <div class="service-url">
+                                ssh.labmuma.xyz
+                            </div>
+
+                            <a
+                                class="service-button"
+                                href="https://ssh.labmuma.xyz"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Buka SSH
+                                <i class="bi bi-box-arrow-up-right"></i>
+                            </a>
+
+                        </article>
+                    </div>
+
+                    <!-- Labmuma App -->
+                    <div class="col-lg-4 col-md-6">
+                        <article class="service-card">
+
+                            <div class="service-icon">
+                                <i class="bi bi-box"></i>
+                            </div>
+
+                            <h3 class="service-title">
+                                Sistem Lab
+                            </h3>
+
+                            <p class="service-description">
+                                Sistem manajemen laboratorium terpadu untuk pendataan inventaris, jadwal, dan operasional lab.
+                            </p>
+
+                            <div class="service-url">
+                                app.labmuma.xyz
+                            </div>
+
+                            <a
+                                class="service-button"
+                                href="https://app.labmuma.xyz"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Buka Sistem Lab
+                                <i class="bi bi-box-arrow-up-right"></i>
+                            </a>
+
+                        </article>
+                    </div>
+
+                    <!-- VNC -->
+                    <div class="col-lg-4 col-md-6">
+                        <article class="service-card">
+
+                            <div class="service-icon">
+                                <i class="bi bi-display"></i>
+                            </div>
+
+                            <h3 class="service-title">
+                                VNC
+                            </h3>
+
+                            <p class="service-description">
+                                Akses desktop server secara remote melalui
+                                VNC dan noVNC menggunakan browser.
+                            </p>
+
+                            <div class="service-url">
+                                vnc.labmuma.xyz
+                            </div>
+
+                            <a
+                                class="service-button"
+                                href="https://vnc.labmuma.xyz"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                            >
+                                Buka VNC
+                                <i class="bi bi-box-arrow-up-right"></i>
+                            </a>
+
+                        </article>
+                    </div>
+
+                    <!-- SIMLab Agent Client & Konsol -->
+                    <div class="col-lg-4 col-md-6">
+                        <article class="service-card clickable-card position-relative"
+                                 data-bs-toggle="modal"
+                                 data-bs-target="#simlabInstallModal"
+                                 role="button"
+                                 tabindex="0"
+                                 title="Klik untuk membuka panduan instalasi SIMLab Agent">
+
+                            <div class="d-flex justify-content-between align-items-start mb-3">
+                                <div class="service-icon mb-0" style="background: rgba(16, 185, 129, 0.12); color: #059669;">
+                                    <i class="bi bi-cpu"></i>
+                                </div>
+                                <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-2 py-1 small">
+                                    <i class="bi bi-book me-1"></i>Klik Panduan
+                                </span>
+                            </div>
+
+                            <h3 class="service-title">
+                                SIMLab Agent
+                            </h3>
+
+                            <p class="service-description">
+                                Agen telemetri workstation, eksekusi skrip remote, dan Wake-on-LAN (WoL) PC lab. Klik kartu ini untuk membaca panduan cara pasang lengkap.
+                            </p>
+
+                            <div class="service-url d-flex justify-content-between align-items-center">
+                                <span>simlab.labmuma.xyz</span>
+                                <span class="text-primary fw-medium small"><i class="bi bi-info-circle me-1"></i>Panduan Install</span>
+                            </div>
+
+                            <div class="d-flex flex-column gap-2 mt-auto pt-2">
+                                <button
+                                    type="button"
+                                    class="service-button w-100 border-0"
+                                    style="background: #e0f2fe; color: #0369a1; font-weight: 600;"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#simlabInstallModal"
+                                >
+                                    <i class="bi bi-journal-code"></i>
+                                    Panduan Cara Install
+                                </button>
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <a
+                                            class="service-button w-100 py-2 small"
+                                            href="/downloads/simlab-agent-windows.zip"
+                                            download
+                                            onclick="event.stopPropagation();"
+                                        >
+                                            <i class="bi bi-windows"></i>
+                                            Win (.zip)
+                                        </a>
+                                    </div>
+                                    <div class="col-6">
+                                        <a
+                                            class="service-button w-100 py-2 small"
+                                            style="background: #1e293b; color: #fff;"
+                                            href="/downloads/simlab-agent-linux.tar.gz"
+                                            download
+                                            onclick="event.stopPropagation();"
+                                        >
+                                            <i class="bi bi-terminal"></i>
+                                            Linux
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </article>
+                    </div>
+
+    </main>
+
+    <!-- =========================
+         FOOTER
+    ========================== -->
+    <footer class="footer">
+        <div class="container main-container">
+            <div class="d-flex flex-column flex-md-row
+                        justify-content-between align-items-center gap-2">
+
+                <span>
+                    © <span id="year"></span> Labmuma &bull; SMK MUHAMMADIYAH MAJENANG
+                </span>
+
+                <span>
+                    Pusat Layanan Server & Laboratorium Komputer
+                </span>
+
+            </div>
+        </div>
+    </footer>
+
+    <!-- =========================
+         HELP MODAL
+    ========================== -->
+    <div
+        class="modal fade"
+        id="helpModal"
+        tabindex="-1"
+        aria-labelledby="helpModalLabel"
+        aria-hidden="true"
+    >
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-sm rounded-4">
+
+                <div class="modal-header border-0">
+                    <h5 class="modal-title" id="helpModalLabel">
+                        Tentang Dashboard
+                    </h5>
+
+                    <button
+                        type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Tutup"
+                    ></button>
+                </div>
+
+                <div class="modal-body pt-0">
+                    <p class="text-secondary">
+                        Labmuma adalah portal layanan server dan monitoring laboratorium komputer SMK MUHAMMADIYAH MAJENANG.
+                    </p>
+
+                    <div class="alert alert-light border">
+                        <i class="bi bi-info-circle me-2"></i>
+                        Pastikan Cloudflare Tunnel dan layanan tujuan
+                        sedang berjalan sebelum membukanya.
+                    </div>
+
+                    <ul class="mb-0 text-secondary">
+                        <li>Nextcloud → penyimpanan dan kolaborasi</li>
+                        <li>SSH → akses terminal</li>
+                        <li>VNC → akses desktop remote</li>
+                    </ul>
+                </div>
+
+                <div class="modal-footer border-0">
+                    <button
+                        type="button"
+                        class="btn btn-light"
+                        data-bs-dismiss="modal"
+                    >
+                        Tutup
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================
+         SIMLAB AGENT INSTALL MODAL
+    ========================== -->
+    <div
+        class="modal fade"
+        id="simlabInstallModal"
+        tabindex="-1"
+        aria-labelledby="simlabInstallModalLabel"
+        aria-hidden="true"
+    >
+        <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg rounded-4">
+
+                <div class="modal-header border-bottom pb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="service-icon mb-0" style="width: 44px; height: 44px; font-size: 1.3rem; background: rgba(16, 185, 129, 0.12); color: #059669; border-radius: 10px;">
+                            <i class="bi bi-cpu"></i>
+                        </div>
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0" id="simlabInstallModalLabel">
+                                Panduan Instalasi SIMLab Agent
+                            </h5>
+                            <span class="text-secondary small">
+                                SMK MUHAMMADIYAH MAJENANG &bull; Remote Lab Management & WoL Relay
+                            </span>
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Tutup"
+                    ></button>
+                </div>
+
+                <div class="modal-body pt-3 pb-4">
+
+                    <!-- Nav Tabs -->
+                    <ul class="nav nav-pills nav-fill mb-3 p-1 bg-light rounded-3" id="simlabTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active py-2 fw-medium" id="win-tab" data-bs-toggle="pill" data-bs-target="#tab-windows" type="button" role="tab">
+                                <i class="bi bi-windows me-1"></i> Windows (Klien & Guru)
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link py-2 fw-medium" id="cfg-tab" data-bs-toggle="pill" data-bs-target="#tab-config" type="button" role="tab">
+                                <i class="bi bi-gear me-1"></i> Konfigurasi config.yaml
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link py-2 fw-medium" id="wol-tab" data-bs-toggle="pill" data-bs-target="#tab-wol" type="button" role="tab">
+                                <i class="bi bi-broadcast me-1"></i> WoL Relay (Beda Router)
+                            </button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link py-2 fw-medium" id="linux-tab" data-bs-toggle="pill" data-bs-target="#tab-linux" type="button" role="tab">
+                                <i class="bi bi-terminal me-1"></i> Linux Client
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="simlabTabsContent">
+
+                        <!-- TAB WINDOWS -->
+                        <div class="tab-pane fade show active" id="tab-windows" role="tabpanel">
+                            <div class="alert alert-light border d-flex align-items-center gap-2 py-2 mb-3">
+                                <i class="bi bi-info-circle-fill text-primary"></i>
+                                <span class="small text-secondary">
+                                    Paket agen Windows sudah dikonfigurasi langsung mengarah ke Cloudflare Online (<code>https://simlab.labmuma.xyz</code>).
+                                </span>
+                            </div>
+
+                            <div class="d-flex flex-column gap-3">
+                                <div class="p-3 border rounded-3 bg-white">
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <span class="badge bg-primary rounded-circle" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;">1</span>
+                                        <strong class="text-dark">Unduh dan Ekstrak Paket</strong>
+                                    </div>
+                                    <p class="text-secondary small mb-2 ms-4">
+                                        Unduh file <code>simlab-agent-windows.zip</code>, lalu ekstrak seluruh isinya ke folder yang aman (disarankan di <code>C:\simlab-agent\</code>).
+                                    </p>
+                                    <div class="ms-4">
+                                        <a href="/downloads/simlab-agent-windows.zip" download class="btn btn-sm btn-outline-success">
+                                            <i class="bi bi-download me-1"></i> Unduh simlab-agent-windows.zip
+                                        </a>
+                                    </div>
+                                </div>
+
+                                <div class="p-3 border rounded-3 bg-white">
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <span class="badge bg-primary rounded-circle" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;">2</span>
+                                        <strong class="text-dark">Atur Kode Lab di config.yaml</strong>
+                                    </div>
+                                    <p class="text-secondary small mb-2 ms-4">
+                                        Buka file <code>config.yaml</code> menggunakan Notepad, lalu sesuaikan bagian <code>lab_id</code> sesuai lokasi ruangan:
+                                    </p>
+                                    <div class="ms-4 bg-light p-2 rounded border font-monospace small">
+                                        lab:<br>
+                                        &nbsp;&nbsp;lab_id: "<strong>lab-rpl-1</strong>"&nbsp;&nbsp;<span class="text-muted"># Pilihan: lab-rpl-1, lab-rpl-2, lab-rpl-3, lab-rpl-4, lab-bahasa, lab-rps</span><br>
+                                        &nbsp;&nbsp;pc_id: "<strong>auto</strong>"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-muted"># Otomatis mengambil nama komputer Windows</span>
+                                    </div>
+                                    <p class="text-muted small mt-2 mb-0 ms-4">
+                                        <em>Khusus PC Guru:</em> ganti <code>pc_id</code> menjadi nama PC Guru ruangan, misalnya: <code>RPL1-KOMGURU</code>.
+                                    </p>
+                                </div>
+
+                                <div class="p-3 border rounded-3 bg-white">
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <span class="badge bg-primary rounded-circle" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;">3</span>
+                                        <strong class="text-dark">Jalankan dan Verifikasi</strong>
+                                    </div>
+                                    <p class="text-secondary small mb-2 ms-4">
+                                        Klik ganda <code>simlab-agent.exe</code>. Jendela akan menampilkan status koneksi:
+                                    </p>
+                                    <div class="ms-4 bg-dark text-success p-2 rounded font-monospace small">
+                                        [Agent] Connected to server: https://simlab.labmuma.xyz<br>
+                                        [Telemetry] Ingest success: 200 OK | Hostname: RPL1-PC01 | MAC: 00:1A:2B:3C:4D:5E
+                                    </div>
+                                    <p class="text-secondary small mt-2 mb-0 ms-4">
+                                        Buka konsol di <strong>simlab.labmuma.xyz</strong> &mdash; kartu PC akan otomatis berubah hijau (Online) dan MAC address terdaftar otomatis.
+                                    </p>
+                                </div>
+
+                                <div class="p-3 border rounded-3 bg-white">
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <span class="badge bg-primary rounded-circle" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;">4</span>
+                                        <strong class="text-dark">Agar Berjalan Otomatis saat Komputer Nyala (Auto-Start)</strong>
+                                    </div>
+                                    <div class="ms-4">
+                                        <p class="text-secondary small mb-2">
+                                            <strong>Metode A (Mudah):</strong> Tekan <kbd>Win</kbd> + <kbd>R</kbd> &rarr; ketik <code>shell:startup</code> &rarr; tekan Enter. Klik kanan <code>simlab-agent.exe</code> &rarr; pilih <em>Create Shortcut</em> &rarr; pindahkan shortcut ke dalam folder startup tersebut.
+                                        </p>
+                                        <p class="text-secondary small mb-1">
+                                            <strong>Metode B (Background Service via Task Scheduler):</strong> Buka CMD Administrator, jalankan 1 perintah ini:
+                                        </p>
+                                        <div class="bg-light p-2 rounded border font-monospace small user-select-all">
+                                            schtasks /create /tn "SIMLabAgent" /tr "C:\simlab-agent\simlab-agent.exe" /sc onstart /ru SYSTEM /rl HIGHEST /f
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- TAB CONFIG -->
+                        <div class="tab-pane fade" id="tab-config" role="tabpanel">
+                            <p class="text-secondary small mb-2">
+                                Struktur lengkap file <code>config.yaml</code>:
+                            </p>
+                            <div class="bg-dark text-light p-3 rounded-3 font-monospace small">
+<span class="text-warning">server</span>:
+  <span class="text-info">url</span>: <span class="text-success">"https://simlab.labmuma.xyz"</span>
+
+<span class="text-warning">mqtt</span>:
+  <span class="text-info">broker_host</span>: <span class="text-success">"simlab.labmuma.xyz"</span>
+  <span class="text-info">broker_port</span>: <span class="text-primary">8883</span>
+  <span class="text-info">use_tls</span>: <span class="text-primary">true</span>
+
+<span class="text-warning">lab</span>:
+  <span class="text-info">lab_id</span>: <span class="text-success">"lab-rpl-1"</span>      <span class="text-muted"># ID ruangan lab</span>
+  <span class="text-info">pc_id</span>: <span class="text-success">"auto"</span>            <span class="text-muted"># auto / nama PC spesifik</span>
+
+<span class="text-warning">agent</span>:
+  <span class="text-info">version</span>: <span class="text-success">"1.0.0"</span>
+  <span class="text-info">telemetry_interval_sec</span>: <span class="text-primary">15</span>
+                            </div>
+
+                            <h6 class="fw-bold mt-3 mb-2 small text-dark">Daftar ID Lab Resmi SMK MUHAMMADIYAH MAJENANG:</h6>
+                            <ul class="list-group list-group-flush small border rounded-2">
+                                <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                                    <span>LAB RPL 1</span> <code>lab-rpl-1</code>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                                    <span>LAB RPL 2</span> <code>lab-rpl-2</code>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                                    <span>LAB RPL 3</span> <code>lab-rpl-3</code>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                                    <span>LAB RPL 4</span> <code>lab-rpl-4</code>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                                    <span>LAB Bahasa</span> <code>lab-bahasa</code>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center py-2">
+                                    <span>LAB RPS</span> <code>lab-rps</code>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <!-- TAB WOL RELAY -->
+                        <div class="tab-pane fade" id="tab-wol" role="tabpanel">
+                            <div class="alert alert-primary border-primary-subtle py-2 mb-3">
+                                <strong class="small d-block mb-1"><i class="bi bi-shield-check me-1"></i> Solusi Topologi Beda Router</strong>
+                                <span class="small">
+                                    Router lab memblokir Magic Packet broadcast antar-ruangan. SIMLab mengatasi ini dengan sistem <strong>Peer-Relay</strong> tanpa perlu mengubah topologi router ataupun menarik kabel baru ke server Debian.
+                                </span>
+                            </div>
+
+                            <ol class="small text-secondary ps-3 mb-3 d-flex flex-column gap-2">
+                                <li>
+                                    <strong>Cukup 1 PC Guru / Komguru Nyala di Tiap Lab:</strong>
+                                    Pasang SIMLab Agent di PC Guru (misal <code>RPL1-KOMGURU</code>). Saat pagi hari, nyalakan PC Guru terlebih dahulu.
+                                </li>
+                                <li>
+                                    <strong>Server Menugaskan PC Guru via Cloud:</strong>
+                                    Saat Anda menekan tombol <em>Wake-on-LAN</em> dari HP di <code>simlab.labmuma.xyz</code>, server Debian mengirimkan daftar MAC address PC siswa ke PC Guru yang sedang online tersebut.
+                                </li>
+                                <li>
+                                    <strong>Eksekusi Broadcast Lokal:</strong>
+                                    Agen di PC Guru langsung menyebarkan paket UDP broadcast (port 9) ke seluruh switch lokal lab. Seluruh 30+ PC siswa dalam lab tersebut langsung menyala bersamaan.
+                                </li>
+                            </ol>
+
+                            <div class="p-3 bg-light rounded-3 border">
+                                <strong class="small d-block text-dark mb-1"><i class="bi bi-lightning-charge text-warning me-1"></i> Tips Alternatif: Auto Power ON (AC Back)</strong>
+                                <p class="text-secondary small mb-0">
+                                    Jika ingin semua PC langsung menyala otomatis begitu MCB listrik lab dihidupkan tanpa perlu WoL: masuk ke BIOS motherboard &rarr; menu <em>Power Management / APM</em> &rarr; ubah <strong>Restore AC Power Loss</strong> menjadi <code>Power On</code>.
+                                </p>
+                            </div>
+                        </div>
+
+                        <!-- TAB LINUX -->
+                        <div class="tab-pane fade" id="tab-linux" role="tabpanel">
+                            <p class="text-secondary small mb-2">
+                                Jalankan perintah berikut pada terminal Ubuntu / Debian di PC klien atau STB Armbian:
+                            </p>
+                            <div class="bg-dark text-light p-3 rounded-3 font-monospace small user-select-all mb-3">
+# 1. Unduh dan ekstrak<br>
+wget https://labmuma.xyz/downloads/simlab-agent-linux.tar.gz<br>
+tar -xzf simlab-agent-linux.tar.gz -C /opt/simlab-agent/<br>
+<br>
+# 2. Edit konfigurasi lab_id<br>
+nano /opt/simlab-agent/config.yaml<br>
+<br>
+# 3. Jalankan sebagai systemd service<br>
+sudo /opt/simlab-agent/simlab-agent -service install<br>
+sudo systemctl start simlab-agent<br>
+sudo systemctl enable simlab-agent
+                            </div>
+                            <a href="/downloads/simlab-agent-linux.tar.gz" download class="btn btn-sm btn-outline-dark">
+                                <i class="bi bi-terminal me-1"></i> Unduh simlab-agent-linux.tar.gz
+                            </a>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="modal-footer border-top d-flex justify-content-between align-items-center">
+                    <a
+                        href="https://simlab.labmuma.xyz"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="btn btn-sm btn-outline-primary"
+                    >
+                        <i class="bi bi-box-arrow-up-right me-1"></i> Buka Konsol SIMLab
+                    </a>
+                    <div class="d-flex gap-2">
+                        <a
+                            href="/downloads/simlab-agent-windows.zip"
+                            download
+                            class="btn btn-sm btn-success"
+                        >
+                            <i class="bi bi-windows me-1"></i> Unduh Windows (.zip)
+                        </a>
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-light border"
+                            data-bs-dismiss="modal"
+                        >
+                            Tutup
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- =========================
+         TOAST
+    ========================== -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div
+            id="appToast"
+            class="toast border-0 shadow-sm"
+            role="alert"
+            aria-live="assertive"
+            aria-atomic="true"
+        >
+            <div class="toast-header">
+                <i class="bi bi-grid-3x3-gap-fill me-2"></i>
+                <strong class="me-auto">Labmuma</strong>
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="toast"
+                    aria-label="Tutup"
+                ></button>
+            </div>
+
+            <div class="toast-body">
+                Semua layanan tersedia melalui kartu di bawah.
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script
+        src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"
+    ></script>
+
+    <script>
+        "use strict";
+
+        /*
+         * ============================================
+         * LABMUMA DASHBOARD JAVASCRIPT
+         * ============================================
+         */
+
+        // --------------------------------------------
+        // Tahun footer otomatis
+        // --------------------------------------------
+        const yearElement = document.getElementById("year");
+
+        if (yearElement) {
+            yearElement.textContent = new Date().getFullYear();
+        }
+
+        // --------------------------------------------
+        // Tombol aplikasi
+        // --------------------------------------------
+        const appsButton = document.getElementById("appsButton");
+        const toastElement = document.getElementById("appToast");
+
+        if (appsButton && toastElement) {
+            const toast = new bootstrap.Toast(toastElement, {
+                delay: 2500
+            });
+
+            appsButton.addEventListener("click", function () {
+                const services = document.getElementById("services");
+
+                if (services) {
+                    services.scrollIntoView({
+                        behavior: "smooth",
+                        block: "start"
+                    });
+                }
+
+                toast.show();
+            });
+        }
+
+
+        // --------------------------------------------
+        // Animasi sederhana saat halaman siap
+        // --------------------------------------------
+        document.addEventListener("DOMContentLoaded", function () {
+            const cards = document.querySelectorAll(
+                ".service-card, .info-card"
+            );
+
+            cards.forEach(function (card, index) {
+                card.style.opacity = "0";
+                card.style.transform = "translateY(8px)";
+
+                setTimeout(function () {
+                    card.style.transition =
+                        "opacity 0.35s ease, transform 0.35s ease";
+
+                    card.style.opacity = "1";
+                    card.style.transform = "translateY(0)";
+                }, 80 * index);
+            });
+        });
+
+        // --------------------------------------------
+        // Keyboard shortcut:
+        // G = buka daftar layanan
+        // --------------------------------------------
+        document.addEventListener("keydown", function (event) {
+            const target = event.target.tagName.toLowerCase();
+
+            if (
+                target === "input" ||
+                target === "textarea" ||
+                target === "select"
+            ) {
+                return;
+            }
+
+            if (event.key.toLowerCase() === "g") {
+                const services = document.getElementById("services");
+
+                if (services) {
+                    services.scrollIntoView({
+                        behavior: "smooth"
+                    });
+                }
+            }
+        });
+
+        // --------------------------------------------
+        // Konfirmasi sederhana sebelum membuka layanan
+        // --------------------------------------------
+        const serviceLinks = document.querySelectorAll(
+            ".service-button"
+        );
+
+        serviceLinks.forEach(function (link) {
+            link.addEventListener("click", function () {
+                const title = this.closest(".service-card")
+                    ?.querySelector(".service-title")
+                    ?.textContent
+                    ?.trim();
+
+                if (title) {
+                    console.log(
+                        "Membuka layanan Labmuma:",
+                        title
+                    );
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>
