@@ -1104,16 +1104,17 @@
                                         <strong class="text-dark">Atur Kode Lab di config.yaml</strong>
                                     </div>
                                     <p class="text-secondary small mb-2 ms-4">
-                                        Buka file <code>config.yaml</code> menggunakan Notepad, lalu sesuaikan bagian <code>lab_id</code> sesuai lokasi ruangan:
+                                        Buka file <code>config.yaml</code> dengan Notepad. Semua PC (Siswa maupun Guru) pengaturannya <strong>100% SAMA</strong>:
                                     </p>
                                     <div class="ms-4 bg-light p-2 rounded border font-monospace small">
                                         lab:<br>
-                                        &nbsp;&nbsp;lab_id: "<strong>lab-rpl-1</strong>"&nbsp;&nbsp;<span class="text-muted"># Pilihan: lab-rpl-1, lab-rpl-2, lab-rpl-3, lab-rpl-4, lab-bahasa, lab-rps</span><br>
-                                        &nbsp;&nbsp;pc_id: "<strong>auto</strong>"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-muted"># Otomatis mengambil nama komputer Windows</span>
+                                        &nbsp;&nbsp;lab_id: "<strong>lab-rpl-1</strong>"&nbsp;&nbsp;<span class="text-muted"># Cukup ganti ini sesuai ruangan (lab-rpl-1 s/d 4, lab-bahasa, lab-rps)</span><br>
+                                        &nbsp;&nbsp;pc_id: "<strong>auto</strong>"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-muted"># Biarkan "auto" (otomatis baca nama komputer Windows)</span>
                                     </div>
-                                    <p class="text-muted small mt-2 mb-0 ms-4">
-                                        <em>Khusus PC Guru:</em> ganti <code>pc_id</code> menjadi nama PC Guru ruangan, misalnya: <code>RPL1-KOMGURU</code>.
-                                    </p>
+                                    <div class="alert alert-info border-0 py-2 px-3 small ms-4 mt-2 mb-0">
+                                        <i class="bi bi-check-circle-fill me-1 text-primary"></i>
+                                        <strong>PC Guru tidak perlu setting khusus.</strong> Cukup install seperti biasa. Karena PC Guru dinyalakan duluan di pagi hari, server otomatis memakainya sebagai pemancar Wake-on-LAN untuk ruangan tersebut.
+                                    </div>
                                 </div>
 
                                 <div class="p-3 border rounded-3 bg-white">
