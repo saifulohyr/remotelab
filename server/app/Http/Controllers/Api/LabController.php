@@ -69,13 +69,16 @@ class LabController extends Controller
     public function pcs(Request $request, int $lab): JsonResponse
     {
         $pcs = Pc::where('lab_id', $lab)
-            ->orderBy('slug')
             ->get()
             ->map(function ($pc) {
+                $isTeacher = str_contains(strtoupper($pc->hostname ?? ''), 'GURU')
+                    || str_contains(strtolower($pc->slug ?? ''), 'guru')
+                    || str_contains(strtoupper($pc->pc_code ?? ''), 'GURU');
                 return [
                     'id' => $pc->id,
                     'hostname' => $pc->hostname,
                     'slug' => $pc->slug,
+                    'pc_code' => $pc->pc_code,
                     'mac_address' => $pc->mac_address,
                     'ip_address' => $pc->ip_address,
                     'status' => $pc->status,
@@ -84,8 +87,17 @@ class LabController extends Controller
                     'agent_version' => $pc->agent_version,
                     'wol_enabled' => $pc->wol_enabled,
                     'description' => $pc->description,
+                    'is_teacher' => $isTeacher,
+                    'role' => $isTeacher ? 'teacher' : 'student',
                 ];
-            });
+            })
+            ->sort(function ($a, $b) {
+                if ($a['is_teacher'] !== $b['is_teacher']) {
+                    return $b['is_teacher'] ? 1 : -1;
+                }
+                return strcmp($a['slug'] ?? '', $b['slug'] ?? '');
+            })
+            ->values();
 
         return response()->json([
             'data' => $pcs,

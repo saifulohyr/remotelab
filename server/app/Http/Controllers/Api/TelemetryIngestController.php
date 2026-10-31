@@ -55,14 +55,27 @@ class TelemetryIngestController extends Controller
             $lab = Lab::first();
         }
 
+        $rawPcId = strtolower(trim($validated['pc_id']));
+        $isTeacherIngest = ($rawPcId === 'komguru' || str_contains($rawPcId, 'guru') || str_contains(strtoupper($hostname), 'GURU'));
+
         // Find or auto-create PC
-        $pc = Pc::where(function ($query) use ($pcSlug, $hostname, $lab) {
-            $query->where('lab_id', $lab ? $lab->id : 1)
-                  ->where(function ($q) use ($pcSlug, $hostname) {
-                      $q->where('slug', $pcSlug)
-                        ->orWhere('hostname', $hostname);
-                  });
-        })->first();
+        if ($isTeacherIngest) {
+            $pc = Pc::where('lab_id', $lab ? $lab->id : 1)
+                ->where(function ($q) use ($pcSlug, $hostname) {
+                    $q->where('hostname', 'like', '%KOMGURU%')
+                      ->orWhere('slug', 'like', '%komguru%')
+                      ->orWhere('slug', $pcSlug)
+                      ->orWhere('hostname', $hostname);
+                })->first();
+        } else {
+            $pc = Pc::where(function ($query) use ($pcSlug, $hostname, $lab) {
+                $query->where('lab_id', $lab ? $lab->id : 1)
+                      ->where(function ($q) use ($pcSlug, $hostname) {
+                          $q->where('slug', $pcSlug)
+                            ->orWhere('hostname', $hostname);
+                      });
+            })->first();
+        }
 
         if (!$pc) {
             $mac = !empty($validated['mac_address']) ? $validated['mac_address'] : sprintf('02:00:00:%02x:%02x:%02x', $lab ? $lab->id : 1, rand(1, 250), rand(1, 250));

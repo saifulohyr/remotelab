@@ -18,7 +18,13 @@ mqtt:
   ca_cert_path: ""
   keep_alive: 10
 
-# Identitas Workstation (Otomatis mendeteksi nama PC)
+# Identitas Workstation & Ruangan
 lab:
-  lab_id: "auto"
+  # Pilihan kode ruangan:
+  # lab-rpl-1, lab-rpl-2, lab-rpl-3, lab-rpl-4, lab-bahasa, lab-rps
+  lab_id: "lab-rpl-1"
+
+  # Pembeda ID:
+  # - PC Siswa : isi "auto" (otomatis baca nama komputer Windows)
+  # - PC Guru  : isi "komguru" (otomatis didaftarkan sebagai Master Relay WoL)
   pc_id: "auto"
