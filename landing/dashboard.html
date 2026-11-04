@@ -1020,267 +1020,274 @@
         aria-hidden="true"
     >
         <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
-            <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-content border-0 rounded-4" style="background:#0d1117; color:#e6edf3; font-family: 'Inter', system-ui, sans-serif; box-shadow: 0 24px 60px rgba(0,0,0,0.5);">
 
-                <div class="modal-header border-bottom pb-3">
-                    <div class="d-flex align-items-center gap-2">
-                        <div class="service-icon mb-0" style="width: 44px; height: 44px; font-size: 1.3rem; background: var(--blue-soft); color: var(--blue); border-radius: 10px;">
+                <div class="modal-header pb-3" style="border-bottom: 1px solid #21262d; background:#0d1117;">
+                    <div class="d-flex align-items-center gap-3">
+                        <div style="width:38px;height:38px;border-radius:9px;background:#161b22;border:1px solid #21262d;display:flex;align-items:center;justify-content:center;font-size:1.1rem;color:#8b949e;">
                             <i class="bi bi-cpu"></i>
                         </div>
                         <div>
-                            <h5 class="modal-title fw-bold mb-0" id="simlabInstallModalLabel">
+                            <h5 class="modal-title fw-semibold mb-0" id="simlabInstallModalLabel" style="font-size:0.95rem;color:#e6edf3;letter-spacing:-0.01em;">
                                 Panduan Instalasi SIMLab Agent
                             </h5>
-                            <span class="text-secondary small">
-                                SMK MUHAMMADIYAH MAJENANG &bull; Remote Lab Management & WoL Relay
+                            <span style="font-size:0.75rem;color:#8b949e;">
+                                SMK MUHAMMADIYAH MAJENANG &bull; Remote Lab Management &amp; WoL Relay
                             </span>
                         </div>
                     </div>
-
                     <button
                         type="button"
-                        class="btn-close"
+                        class="btn-close btn-close-white"
                         data-bs-dismiss="modal"
                         aria-label="Tutup"
+                        style="opacity:0.5;"
                     ></button>
                 </div>
 
-                <div class="modal-body pt-3 pb-4">
+                <div class="modal-body pt-3 pb-4" style="background:#0d1117;">
 
                     <!-- Nav Tabs -->
-                    <ul class="nav nav-pills nav-fill mb-3 p-1 bg-light rounded-3" id="simlabTabs" role="tablist">
+                    <ul class="nav mb-4 d-flex gap-1" id="simlabTabs" role="tablist" style="border-bottom:1px solid #21262d; padding-bottom:0;">
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link active py-2 fw-medium" id="win-tab" data-bs-toggle="pill" data-bs-target="#tab-windows" type="button" role="tab">
-                                <i class="bi bi-windows me-1"></i> Windows (Klien & Guru)
+                            <button class="nav-link active px-3 py-2 small fw-medium" id="win-tab" data-bs-toggle="pill" data-bs-target="#tab-windows" type="button" role="tab"
+                                style="background:transparent;color:#8b949e;border:none;border-bottom:2px solid transparent;border-radius:0;transition:all 0.15s;">
+                                <i class="bi bi-windows me-1"></i>Windows
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link py-2 fw-medium" id="cfg-tab" data-bs-toggle="pill" data-bs-target="#tab-config" type="button" role="tab">
-                                <i class="bi bi-gear me-1"></i> Konfigurasi config.yaml
+                            <button class="nav-link px-3 py-2 small fw-medium" id="cfg-tab" data-bs-toggle="pill" data-bs-target="#tab-config" type="button" role="tab"
+                                style="background:transparent;color:#8b949e;border:none;border-bottom:2px solid transparent;border-radius:0;transition:all 0.15s;">
+                                <i class="bi bi-gear me-1"></i>config.yaml
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link py-2 fw-medium" id="wol-tab" data-bs-toggle="pill" data-bs-target="#tab-wol" type="button" role="tab">
-                                <i class="bi bi-broadcast me-1"></i> WoL Relay (Beda Router)
+                            <button class="nav-link px-3 py-2 small fw-medium" id="wol-tab" data-bs-toggle="pill" data-bs-target="#tab-wol" type="button" role="tab"
+                                style="background:transparent;color:#8b949e;border:none;border-bottom:2px solid transparent;border-radius:0;transition:all 0.15s;">
+                                <i class="bi bi-broadcast me-1"></i>WoL Relay
                             </button>
                         </li>
                         <li class="nav-item" role="presentation">
-                            <button class="nav-link py-2 fw-medium" id="linux-tab" data-bs-toggle="pill" data-bs-target="#tab-linux" type="button" role="tab">
-                                <i class="bi bi-terminal me-1"></i> Linux Client
+                            <button class="nav-link px-3 py-2 small fw-medium" id="linux-tab" data-bs-toggle="pill" data-bs-target="#tab-linux" type="button" role="tab"
+                                style="background:transparent;color:#8b949e;border:none;border-bottom:2px solid transparent;border-radius:0;transition:all 0.15s;">
+                                <i class="bi bi-terminal me-1"></i>Linux
                             </button>
                         </li>
                     </ul>
+
+                    <style>
+                        #simlabTabs .nav-link.active { color:#e6edf3 !important; border-bottom-color:#1a73e8 !important; }
+                        #simlabTabs .nav-link:hover:not(.active) { color:#e6edf3 !important; }
+                        .simlab-step { background:#161b22; border:1px solid #21262d; border-radius:10px; padding:14px 16px; }
+                        .simlab-step + .simlab-step { margin-top:10px; }
+                        .simlab-badge { display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:#1a73e8;color:#fff;font-size:0.7rem;font-weight:700;flex-shrink:0; }
+                        .simlab-code { background:#010409; border:1px solid #21262d; border-radius:8px; padding:12px 14px; font-family:Menlo,Monaco,'Courier New',monospace; font-size:0.78rem; color:#e6edf3; overflow-x:auto; user-select:all; }
+                        .simlab-code .c { color:#8b949e; }
+                        .simlab-code .k { color:#ff7b72; }
+                        .simlab-code .s { color:#a5d6ff; }
+                        .simlab-code .n { color:#79c0ff; }
+                        .simlab-code .v { color:#ffa657; }
+                        .simlab-note { background:#161b22; border:1px solid #21262d; border-left:3px solid #1a73e8; border-radius:0 8px 8px 0; padding:10px 14px; font-size:0.8rem; color:#8b949e; margin-top:10px; }
+                        .simlab-warn { border-left-color:#f0883e !important; }
+                    </style>
 
                     <div class="tab-content" id="simlabTabsContent">
 
                         <!-- TAB WINDOWS -->
                         <div class="tab-pane fade show active" id="tab-windows" role="tabpanel">
-                            <div class="alert alert-light border d-flex align-items-center gap-2 py-2 mb-3">
-                                <i class="bi bi-info-circle-fill text-primary"></i>
-                                <span class="small text-secondary">
-                                    Paket agen Windows sudah dikonfigurasi langsung mengarah ke Cloudflare Online (<code>https://simlab.labmuma.xyz</code>).
-                                </span>
+
+                            <div class="simlab-note mb-3">
+                                <i class="bi bi-info-circle me-1" style="color:#1a73e8;"></i>
+                                Paket sudah dikonfigurasi ke <code style="color:#a5d6ff;background:transparent;">https://simlab.labmuma.xyz</code>. Tidak perlu edit server URL.
                             </div>
 
-                            <div class="d-flex flex-column gap-3">
-                                <div class="p-3 border rounded-3 bg-white">
-                                    <div class="d-flex align-items-center gap-2 mb-1">
-                                        <span class="badge bg-primary rounded-circle" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;">1</span>
-                                        <strong class="text-dark">Unduh dan Ekstrak Paket</strong>
-                                    </div>
-                                    <p class="text-secondary small mb-2 ms-4">
-                                        Unduh file <code>simlab-agent-windows.zip</code>, lalu ekstrak seluruh isinya ke folder yang aman (disarankan di <code>C:\simlab-agent\</code>).
-                                    </p>
-                                    <div class="ms-4">
-                                        <a href="/downloads/simlab-agent-windows.zip" download class="btn btn-sm btn-primary" style="background:#1a73e8;color:#fff;">
-                                            <i class="bi bi-download me-1"></i> Unduh simlab-agent-windows.zip
-                                        </a>
-                                    </div>
+                            <div class="simlab-step">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <span class="simlab-badge">1</span>
+                                    <span class="fw-medium" style="font-size:0.85rem;color:#e6edf3;">Unduh &amp; Ekstrak</span>
                                 </div>
-
-                                <div class="p-3 border rounded-3 bg-white">
-                                    <div class="d-flex align-items-center gap-2 mb-1">
-                                        <span class="badge bg-primary rounded-circle" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;">2</span>
-                                        <strong class="text-dark">Atur Kode Lab & ID di config.yaml</strong>
-                                    </div>
-                                    <p class="text-secondary small mb-2 ms-4">
-                                        Buka file <code>config.yaml</code> dengan Notepad. Pembeda ID sangat mudah:
-                                    </p>
-                                    <div class="ms-4 bg-light p-2.5 rounded border font-monospace small">
-                                        lab:<br>
-                                        &nbsp;&nbsp;lab_id: "<strong>lab-rpl-1</strong>"&nbsp;&nbsp;<span class="text-muted"># Pilih: lab-rpl-1 s/d 4, lab-bahasa, lab-rps</span><br>
-                                        &nbsp;&nbsp;pc_id: "<strong>auto</strong>"&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="text-muted"># PC SISWA: biarkan "auto" (baca nama Windows)</span><br>
-                                        &nbsp;&nbsp;<span class="text-muted"># pc_id: "<strong>komguru</strong>"&nbsp;&nbsp;&nbsp;&nbsp;# KHUSUS PC GURU: isi "komguru"</span>
-                                    </div>
-                                    <div class="alert alert-info border-0 py-2 px-3 small ms-4 mt-2 mb-0">
-                                        <i class="bi bi-shield-check me-1 text-primary"></i>
-                                        <strong>Pembeda Komguru:</strong> Cukup isi <code>pc_id: "komguru"</code> di PC Guru. Di dashboard SIMLab, kartu PC Guru akan otomatis tampil <strong>paling atas dan terpisah</strong> sebagai Master Relay WoL ruangan.
-                                    </div>
-                                </div>
-
-                                <div class="p-3 border rounded-3 bg-white">
-                                    <div class="d-flex align-items-center gap-2 mb-1">
-                                        <span class="badge bg-primary rounded-circle" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;">3</span>
-                                        <strong class="text-dark">Jalankan dan Verifikasi</strong>
-                                    </div>
-                                    <p class="text-secondary small mb-2 ms-4">
-                                        Klik ganda <code>simlab-agent.exe</code>. Jendela akan menampilkan status koneksi:
-                                    </p>
-                                    <div class="ms-4 bg-dark text-info p-2 rounded font-monospace small">
-                                        [Agent] Connected to server: https://simlab.labmuma.xyz<br>
-                                        [Telemetry] Ingest success: 200 OK | Hostname: RPL1-PC01 | MAC: 00:1A:2B:3C:4D:5E
-                                    </div>
-                                    <p class="text-secondary small mt-2 mb-0 ms-4">
-                                        Buka konsol di <strong>simlab.labmuma.xyz</strong> &mdash; kartu PC akan otomatis berubah hijau (Online) dan MAC address terdaftar otomatis.
-                                    </p>
-                                </div>
-
-                                <div class="p-3 border rounded-3 bg-white">
-                                    <div class="d-flex align-items-center gap-2 mb-1">
-                                        <span class="badge bg-primary rounded-circle" style="width:24px;height:24px;display:flex;align-items:center;justify-content:center;">4</span>
-                                        <strong class="text-dark">Agar Berjalan Otomatis saat Komputer Nyala (Auto-Start)</strong>
-                                    </div>
-                                    <div class="ms-4">
-                                        <p class="text-secondary small mb-2">
-                                            <strong>Metode A (Mudah):</strong> Tekan <kbd>Win</kbd> + <kbd>R</kbd> &rarr; ketik <code>shell:startup</code> &rarr; tekan Enter. Klik kanan <code>simlab-agent.exe</code> &rarr; pilih <em>Create Shortcut</em> &rarr; pindahkan shortcut ke dalam folder startup tersebut.
-                                        </p>
-                                        <p class="text-secondary small mb-1">
-                                            <strong>Metode B (Background Service via Task Scheduler):</strong> Buka CMD Administrator, jalankan 1 perintah ini:
-                                        </p>
-                                        <div class="bg-light p-2 rounded border font-monospace small user-select-all">
-                                            schtasks /create /tn "SIMLabAgent" /tr "C:\simlab-agent\simlab-agent.exe" /sc onstart /ru SYSTEM /rl HIGHEST /f
-                                        </div>
-                                    </div>
+                                <p style="font-size:0.8rem;color:#8b949e;margin:0 0 10px 30px;">
+                                    Ekstrak isi zip ke folder <code style="color:#a5d6ff;background:transparent;">C:\simlab-agent\</code>
+                                </p>
+                                <div class="ms-4 d-flex gap-2">
+                                    <a href="/downloads/simlab-agent-windows.zip" download
+                                       style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;background:#161b22;border:1px solid #30363d;color:#e6edf3;font-size:0.8rem;font-weight:500;text-decoration:none;transition:border-color 0.15s;"
+                                       onmouseover="this.style.borderColor='#1a73e8'" onmouseout="this.style.borderColor='#30363d'">
+                                        <i class="bi bi-download" style="color:#1a73e8;"></i> simlab-agent-windows.zip
+                                    </a>
                                 </div>
                             </div>
+
+                            <div class="simlab-step">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <span class="simlab-badge">2</span>
+                                    <span class="fw-medium" style="font-size:0.85rem;color:#e6edf3;">Atur config.yaml</span>
+                                </div>
+                                <p style="font-size:0.8rem;color:#8b949e;margin:0 0 10px 30px;">
+                                    Buka <code style="color:#a5d6ff;background:transparent;">config.yaml</code> dengan Notepad, ubah <code style="color:#ffa657;background:transparent;">lab_id</code> sesuai ruangan:
+                                </p>
+                                <div class="simlab-code ms-4">
+<span class="n">lab</span>:<br>
+&nbsp;&nbsp;<span class="k">lab_id</span>: <span class="s">"lab-rpl-1"</span>&nbsp;&nbsp;<span class="c"># lab-rpl-1 s/d 4 | lab-bahasa | lab-rps</span><br>
+&nbsp;&nbsp;<span class="k">pc_id</span>:&nbsp; <span class="s">"auto"</span>&nbsp;&nbsp;&nbsp;&nbsp;<span class="c"># PC SISWA: biarkan auto</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c"># PC GURU : isi "komguru"</span>
+                                </div>
+                                <div class="simlab-note" style="margin-top:8px;">
+                                    <i class="bi bi-shield-check me-1" style="color:#1a73e8;"></i>
+                                    PC Guru cukup isi <code style="color:#ffa657;background:transparent;">pc_id: "komguru"</code> — otomatis tampil paling atas &amp; jadi relay WoL ruangan.
+                                </div>
+                            </div>
+
+                            <div class="simlab-step">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <span class="simlab-badge">3</span>
+                                    <span class="fw-medium" style="font-size:0.85rem;color:#e6edf3;">Jalankan &amp; Verifikasi</span>
+                                </div>
+                                <p style="font-size:0.8rem;color:#8b949e;margin:0 0 10px 30px;">
+                                    Klik ganda <code style="color:#a5d6ff;background:transparent;">simlab-agent.exe</code>. Pastikan muncul:
+                                </p>
+                                <div class="simlab-code ms-4">
+<span style="color:#3fb950;">[Agent]</span> Connected to server: https://simlab.labmuma.xyz<br>
+<span style="color:#3fb950;">[Telemetry]</span> Ingest success: 200 OK | Hostname: RPL1-PC01
+                                </div>
+                                <p style="font-size:0.8rem;color:#8b949e;margin:10px 0 0 30px;">
+                                    Kartu PC akan muncul otomatis di <strong style="color:#e6edf3;">simlab.labmuma.xyz</strong>.
+                                </p>
+                            </div>
+
+                            <div class="simlab-step">
+                                <div class="d-flex align-items-center gap-2 mb-2">
+                                    <span class="simlab-badge">4</span>
+                                    <span class="fw-medium" style="font-size:0.85rem;color:#e6edf3;">Auto-Start saat Komputer Nyala</span>
+                                </div>
+                                <p style="font-size:0.8rem;color:#8b949e;margin:0 0 10px 30px;"><strong style="color:#e6edf3;">Metode A (Mudah):</strong>
+                                    <kbd style="background:#21262d;border:1px solid #30363d;border-radius:4px;padding:1px 5px;font-size:0.75rem;">Win</kbd> +
+                                    <kbd style="background:#21262d;border:1px solid #30363d;border-radius:4px;padding:1px 5px;font-size:0.75rem;">R</kbd>
+                                    → ketik <code style="color:#a5d6ff;background:transparent;">shell:startup</code> → Enter → buat shortcut <code style="color:#a5d6ff;background:transparent;">simlab-agent.exe</code> ke sana.
+                                </p>
+                                <p style="font-size:0.8rem;color:#8b949e;margin:0 0 8px 30px;"><strong style="color:#e6edf3;">Metode B (Service — Direkomendasikan):</strong></p>
+                                <div class="simlab-code ms-4">
+schtasks /create /tn <span class="s">"SIMLabAgent"</span> /tr <span class="s">"C:\simlab-agent\simlab-agent.exe"</span> /sc onstart /ru SYSTEM /rl HIGHEST /f
+                                </div>
+                            </div>
+
                         </div>
 
                         <!-- TAB CONFIG -->
                         <div class="tab-pane fade" id="tab-config" role="tabpanel">
-                            <p class="text-secondary small mb-2">
-                                Struktur lengkap file <code>config.yaml</code>:
-                            </p>
-                            <div class="bg-dark text-light p-3 rounded-3 font-monospace small">
-<span class="text-warning">server</span>:
-  <span class="text-info">url</span>: <span class="text-warning">"https://simlab.labmuma.xyz"</span>
-
-<span class="text-warning">mqtt</span>:
-  <span class="text-info">broker_host</span>: <span class="text-primary">"simlab.labmuma.xyz"</span>
-  <span class="text-info">broker_port</span>: <span class="text-primary">8883</span>
-  <span class="text-info">use_tls</span>: <span class="text-primary">true</span>
-
-<span class="text-warning">lab</span>:
-  <span class="text-info">lab_id</span>: <span class="text-warning">"lab-rpl-1"</span>      <span class="text-muted"># ID ruangan lab</span>
-  <span class="text-info">pc_id</span>: <span class="text-warning">"auto"</span>            <span class="text-muted"># auto / nama PC spesifik</span>
-
-<span class="text-warning">agent</span>:
-  <span class="text-info">version</span>: <span class="text-warning">"1.0.0"</span>
-  <span class="text-info">telemetry_interval_sec</span>: <span class="text-primary">15</span>
+                            <p style="font-size:0.8rem;color:#8b949e;margin-bottom:12px;">Struktur lengkap file <code style="color:#a5d6ff;background:transparent;">config.yaml</code>:</p>
+                            <div class="simlab-code">
+<span class="n">server</span>:<br>
+&nbsp;&nbsp;<span class="k">url</span>: <span class="s">"https://simlab.labmuma.xyz"</span><br>
+<br>
+<span class="n">mqtt</span>:<br>
+&nbsp;&nbsp;<span class="k">broker_host</span>: <span class="s">"simlab.labmuma.xyz"</span><br>
+&nbsp;&nbsp;<span class="k">broker_port</span>: <span class="v">8883</span><br>
+&nbsp;&nbsp;<span class="k">use_tls</span>:&nbsp;&nbsp;&nbsp;&nbsp;<span class="v">true</span><br>
+<br>
+<span class="n">lab</span>:<br>
+&nbsp;&nbsp;<span class="k">lab_id</span>: <span class="s">"lab-rpl-1"</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c"># ID ruangan lab</span><br>
+&nbsp;&nbsp;<span class="k">pc_id</span>:&nbsp; <span class="s">"auto"</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="c"># auto / nama PC spesifik</span><br>
+<br>
+<span class="n">agent</span>:<br>
+&nbsp;&nbsp;<span class="k">version</span>:&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="s">"1.0.0"</span><br>
+&nbsp;&nbsp;<span class="k">telemetry_interval_sec</span>: <span class="v">15</span>
                             </div>
 
-                            <h6 class="fw-bold mt-3 mb-2 small text-dark">Daftar ID Lab Resmi SMK MUHAMMADIYAH MAJENANG:</h6>
-                            <ul class="list-group list-group-flush small border rounded-2">
-                                <li class="list-group-item d-flex justify-content-between align-items-center py-2">
-                                    <span>LAB RPL 1</span> <code>lab-rpl-1</code>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center py-2">
-                                    <span>LAB RPL 2</span> <code>lab-rpl-2</code>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center py-2">
-                                    <span>LAB RPL 3</span> <code>lab-rpl-3</code>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center py-2">
-                                    <span>LAB RPL 4</span> <code>lab-rpl-4</code>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center py-2">
-                                    <span>LAB Bahasa</span> <code>lab-bahasa</code>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center py-2">
-                                    <span>LAB RPS</span> <code>lab-rps</code>
-                                </li>
-                            </ul>
+                            <h6 class="fw-semibold mt-4 mb-2" style="font-size:0.8rem;color:#e6edf3;letter-spacing:0.03em;text-transform:uppercase;">Daftar ID Lab Resmi</h6>
+                            <div class="simlab-code" style="user-select:text;">
+<span class="c"># Lab RPL</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="s">lab-rpl-1</span> &nbsp;|&nbsp; <span class="s">lab-rpl-2</span> &nbsp;|&nbsp; <span class="s">lab-rpl-3</span> &nbsp;|&nbsp; <span class="s">lab-rpl-4</span><br>
+<span class="c"># Lab Lain</span>&nbsp;&nbsp;&nbsp;<span class="s">lab-bahasa</span> &nbsp;|&nbsp; <span class="s">lab-rps</span>
+                            </div>
                         </div>
 
                         <!-- TAB WOL RELAY -->
                         <div class="tab-pane fade" id="tab-wol" role="tabpanel">
-                            <div class="alert alert-primary border-primary-subtle py-2 mb-3">
-                                <strong class="small d-block mb-1"><i class="bi bi-shield-check me-1"></i> Solusi Topologi Beda Router</strong>
-                                <span class="small">
-                                    Router lab memblokir Magic Packet broadcast antar-ruangan. SIMLab mengatasi ini dengan sistem <strong>Peer-Relay</strong> tanpa perlu mengubah topologi router ataupun menarik kabel baru ke server Debian.
-                                </span>
+                            <div class="simlab-note mb-3">
+                                <i class="bi bi-broadcast me-1" style="color:#1a73e8;"></i>
+                                Router lab memblokir Magic Packet antar-ruangan. SIMLab mengatasi ini dengan sistem <strong style="color:#e6edf3;">Peer-Relay</strong> — tanpa ubah topologi.
                             </div>
 
-                            <ol class="small text-secondary ps-3 mb-3 d-flex flex-column gap-2">
-                                <li>
-                                    <strong>Cukup 1 PC Guru / Komguru Nyala di Tiap Lab:</strong>
-                                    Pasang SIMLab Agent di PC Guru (misal <code>RPL1-KOMGURU</code>). Saat pagi hari, nyalakan PC Guru terlebih dahulu.
-                                </li>
-                                <li>
-                                    <strong>Server Menugaskan PC Guru via Cloud:</strong>
-                                    Saat Anda menekan tombol <em>Wake-on-LAN</em> dari HP di <code>simlab.labmuma.xyz</code>, server Debian mengirimkan daftar MAC address PC siswa ke PC Guru yang sedang online tersebut.
-                                </li>
-                                <li>
-                                    <strong>Eksekusi Broadcast Lokal:</strong>
-                                    Agen di PC Guru langsung menyebarkan paket UDP broadcast (port 9) ke seluruh switch lokal lab. Seluruh 30+ PC siswa dalam lab tersebut langsung menyala bersamaan.
-                                </li>
-                            </ol>
+                            <div class="d-flex flex-column gap-2 mb-3">
+                                <div class="simlab-step d-flex gap-3">
+                                    <span class="simlab-badge" style="margin-top:2px;flex-shrink:0;">1</span>
+                                    <div>
+                                        <p style="font-size:0.85rem;color:#e6edf3;font-weight:500;margin:0 0 4px;">Nyalakan PC Guru terlebih dahulu</p>
+                                        <p style="font-size:0.8rem;color:#8b949e;margin:0;">Pasang SIMLab Agent di PC Guru (<code style="color:#a5d6ff;background:transparent;">RPL1-KOMGURU</code>). Saat pagi, PC Guru dinyalakan manual lebih awal.</p>
+                                    </div>
+                                </div>
+                                <div class="simlab-step d-flex gap-3">
+                                    <span class="simlab-badge" style="margin-top:2px;flex-shrink:0;">2</span>
+                                    <div>
+                                        <p style="font-size:0.85rem;color:#e6edf3;font-weight:500;margin:0 0 4px;">Tekan WoL dari konsol</p>
+                                        <p style="font-size:0.8rem;color:#8b949e;margin:0;">Server mengirim daftar MAC address PC siswa ke PC Guru yang online via Cloudflare Tunnel.</p>
+                                    </div>
+                                </div>
+                                <div class="simlab-step d-flex gap-3">
+                                    <span class="simlab-badge" style="margin-top:2px;flex-shrink:0;">3</span>
+                                    <div>
+                                        <p style="font-size:0.85rem;color:#e6edf3;font-weight:500;margin:0 0 4px;">PC Guru relay ke LAN lokal</p>
+                                        <p style="font-size:0.8rem;color:#8b949e;margin:0;">Agen mengirim Magic Packet UDP broadcast (port 9) ke switch lokal. Seluruh 30+ PC menyala bersamaan.</p>
+                                    </div>
+                                </div>
+                            </div>
 
-                            <div class="p-3 bg-light rounded-3 border">
-                                <strong class="small d-block text-dark mb-1"><i class="bi bi-lightning-charge text-warning me-1"></i> Tips Alternatif: Auto Power ON (AC Back)</strong>
-                                <p class="text-secondary small mb-0">
-                                    Jika ingin semua PC langsung menyala otomatis begitu MCB listrik lab dihidupkan tanpa perlu WoL: masuk ke BIOS motherboard &rarr; menu <em>Power Management / APM</em> &rarr; ubah <strong>Restore AC Power Loss</strong> menjadi <code>Power On</code>.
-                                </p>
+                            <div class="simlab-note simlab-warn">
+                                <i class="bi bi-lightning-charge me-1" style="color:#f0883e;"></i>
+                                <strong style="color:#e6edf3;">Tips:</strong> Supaya semua PC menyala otomatis saat MCB dihidupkan tanpa WoL — masuk BIOS &rarr; <em>Power Management</em> &rarr; ubah <code style="color:#ffa657;background:transparent;">Restore AC Power Loss</code> ke <code style="color:#ffa657;background:transparent;">Power On</code>.
                             </div>
                         </div>
 
                         <!-- TAB LINUX -->
                         <div class="tab-pane fade" id="tab-linux" role="tabpanel">
-                            <p class="text-secondary small mb-2">
-                                Jalankan perintah berikut pada terminal Ubuntu / Debian di PC klien atau STB Armbian:
-                            </p>
-                            <div class="bg-dark text-light p-3 rounded-3 font-monospace small user-select-all mb-3">
-# 1. Unduh dan ekstrak<br>
+                            <p style="font-size:0.8rem;color:#8b949e;margin-bottom:12px;">Jalankan pada terminal Ubuntu / Debian / Armbian:</p>
+                            <div class="simlab-code">
+<span class="c"># 1. Unduh dan ekstrak</span><br>
 wget https://labmuma.xyz/downloads/simlab-agent-linux.tar.gz<br>
 tar -xzf simlab-agent-linux.tar.gz -C /opt/simlab-agent/<br>
 <br>
-# 2. Edit konfigurasi lab_id<br>
+<span class="c"># 2. Edit konfigurasi</span><br>
 nano /opt/simlab-agent/config.yaml<br>
 <br>
-# 3. Jalankan sebagai systemd service<br>
+<span class="c"># 3. Install sebagai systemd service</span><br>
 sudo /opt/simlab-agent/simlab-agent -service install<br>
-sudo systemctl start simlab-agent<br>
-sudo systemctl enable simlab-agent
+sudo systemctl enable --now simlab-agent
                             </div>
-                            <a href="/downloads/simlab-agent-linux.tar.gz" download class="btn btn-sm btn-outline-dark">
-                                <i class="bi bi-terminal me-1"></i> Unduh simlab-agent-linux.tar.gz
-                            </a>
+                            <div class="mt-3">
+                                <a href="/downloads/simlab-agent-linux.tar.gz" download
+                                   style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;background:#161b22;border:1px solid #30363d;color:#e6edf3;font-size:0.8rem;font-weight:500;text-decoration:none;"
+                                   onmouseover="this.style.borderColor='#1a73e8'" onmouseout="this.style.borderColor='#30363d'">
+                                    <i class="bi bi-terminal" style="color:#1a73e8;"></i> simlab-agent-linux.tar.gz
+                                </a>
+                            </div>
                         </div>
 
                     </div>
 
                 </div>
 
-                <div class="modal-footer border-top d-flex justify-content-between align-items-center">
+                <div class="modal-footer d-flex justify-content-between align-items-center" style="border-top:1px solid #21262d;background:#0d1117;padding:12px 20px;">
                     <a
                         href="https://simlab.labmuma.xyz"
                         target="_blank"
                         rel="noopener noreferrer"
-                        class="btn btn-sm btn-outline-primary"
+                        style="display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:7px;background:transparent;border:1px solid #30363d;color:#8b949e;font-size:0.8rem;text-decoration:none;"
+                        onmouseover="this.style.borderColor='#1a73e8';this.style.color='#e6edf3'" onmouseout="this.style.borderColor='#30363d';this.style.color='#8b949e'"
                     >
-                        <i class="bi bi-box-arrow-up-right me-1"></i> Buka Konsol SIMLab
+                        <i class="bi bi-box-arrow-up-right"></i> Buka Konsol SIMLab
                     </a>
                     <div class="d-flex gap-2">
                         <a
                             href="/downloads/simlab-agent-windows.zip"
                             download
-                            class="btn btn-sm btn-primary" style="background:#1a73e8;color:#fff;"
+                            style="display:inline-flex;align-items:center;gap:6px;padding:7px 16px;border-radius:7px;background:#1a73e8;color:#fff;font-size:0.8rem;font-weight:600;text-decoration:none;"
                         >
-                            <i class="bi bi-windows me-1"></i> Unduh Windows (.zip)
+                            <i class="bi bi-windows"></i> Unduh Windows (.zip)
                         </a>
                         <button
                             type="button"
-                            class="btn btn-sm btn-light border"
                             data-bs-dismiss="modal"
+                            style="padding:7px 14px;border-radius:7px;background:#161b22;border:1px solid #30363d;color:#8b949e;font-size:0.8rem;cursor:pointer;"
                         >
                             Tutup
                         </button>
