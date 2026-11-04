@@ -40,7 +40,7 @@ SIMLab is a centralized remote laboratory management and monitoring system for u
 
 - **Host Machine**: Ubuntu Linux (noble) x86_64
 - **System User**: `sir`
-- **Sudo Password**: `sir999`
+- **Sudo Password**: <removed; rotate immediately>
 - **PHP**: PHP 8.3.6 (with `pdo_sqlite`, `sqlite3`, `curl`, `mbstring`, `pdo_mysql`, `openssl`)
 - **Go**: `go1.22.2 linux/amd64`
 - **Broker**: Mosquitto MQTT & `mosquitto-clients` installed
@@ -49,13 +49,13 @@ SIMLab is a centralized remote laboratory management and monitoring system for u
 ### 🔑 Seeded Accounts (Ready to use)
 | Role | Email | Password | Access Scope |
 |------|-------|----------|--------------|
-| **Superadmin** | `admin@simlab.local` | `password` | All 6 Labs, All PCs, All Commands |
-| **Operator 1** | `op1@simlab.local` | `password` | Lab Komputer 1, 2, 3 |
-| **Operator 2** | `op2@simlab.local` | `password` | Lab Komputer 4, 5, 6 |
+| **Superadmin** | private | `<private>` | provision privately |
+| **Operator 1** | private | `<private>` | provision privately |
+| **Operator 2** | private | `<private>` | provision privately |
 
 ### 🔑 Shared Tokens & Environment
 - **Laravel `.env` Location**: `/home/sir/remotelab/server/.env`
-- **Internal API Token**: Configured in `.env` as `INTERNAL_API_TOKEN=simlab-secret-internal-token-change-in-production`
+- **Internal API Token**: stored only in a private environment file (not documented here).
 - **Database Driver**: `DB_CONNECTION=sqlite`
 
 ---
@@ -161,7 +161,7 @@ php artisan serve --host=127.0.0.1 --port=8000
 # Login as admin:
 curl -s -X POST http://127.0.0.1:8000/api/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@simlab.local","password":"password"}'
+  -d '{"email":"admin@simlab.local","password":"<ADMIN_PASSWORD>"}'
 
 # Response contains: {"token":"1|xxx...","user":{"id":1,"name":"Admin SIMLab","role":"superadmin"}}
 

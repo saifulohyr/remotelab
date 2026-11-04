@@ -10,7 +10,7 @@ class Metric extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'pc_id', 'cpu_percent', 'ram_percent', 'disk_percent',
+        'pc_id', 'sample_id', 'cpu_percent', 'ram_percent', 'disk_percent',
         'uptime_seconds', 'recorded_at',
     ];
 

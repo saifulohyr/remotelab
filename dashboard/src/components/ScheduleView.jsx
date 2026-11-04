@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { CalendarClock, Plus, Trash2, CheckCircle2, ShieldAlert } from 'lucide-react';
+import { Plus, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { api } from '../api';
+import {
+  WEEK_DAYS,
+  createDefaultScheduleRows,
+  normalizeScheduleRows,
+  updateScheduleRow,
+  buildScheduleExceptionPayload,
+} from '../schedule';
 
 const DAY_NAMES = [
   'Minggu',
@@ -14,45 +21,58 @@ const DAY_NAMES = [
 
 export default function ScheduleView({ selectedLabId = 1, labs = [] }) {
   const [labId, setLabId] = useState(selectedLabId);
-  const [schedules, setSchedules] = useState([]);
+  const [schedules, setSchedules] = useState(createDefaultScheduleRows);
   const [exceptions, setExceptions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState(null);
+  const [error, setError] = useState(null);
+  const [reloadKey, setReloadKey] = useState(0);
 
   // New exception form state
   const [newDate, setNewDate] = useState('');
   const [newReason, setNewReason] = useState('');
+  const [newType, setNewType] = useState('skip');
+  const [newWakeTime, setNewWakeTime] = useState('');
+  const [newShutdownTime, setNewShutdownTime] = useState('');
 
   useEffect(() => {
-    fetchSchedules();
-  }, [labId]);
+    setLabId(selectedLabId);
+  }, [selectedLabId]);
 
-  const fetchSchedules = async () => {
+  useEffect(() => {
+    let active = true;
     setLoading(true);
-    try {
-      const [schedRes, exRes] = await Promise.all([
-        api.getSchedules(labId),
-        api.getScheduleExceptions(labId),
-      ]);
-      if (schedRes?.data) setSchedules(schedRes.data);
-      if (exRes?.data) setExceptions(exRes.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    setError(null);
+    setSchedules(createDefaultScheduleRows());
+
+    Promise.all([
+      api.getSchedules(labId),
+      api.getScheduleExceptions(labId),
+    ])
+      .then(([schedRes, exRes]) => {
+        if (!active) return;
+        setSchedules(normalizeScheduleRows(schedRes?.data || []));
+        setExceptions(exRes?.data || []);
+      })
+      .catch((err) => {
+        if (active) setError(err.message || 'Gagal memuat jadwal.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => { active = false; };
+  }, [labId, reloadKey]);
 
   const handleToggleDay = (dayIndex) => {
-    setSchedules((prev) =>
-      prev.map((s) => (s.day_of_week === dayIndex ? { ...s, is_active: !s.is_active } : s))
-    );
+    setSchedules((prev) => {
+      const current = normalizeScheduleRows(prev).find((row) => row.day_of_week === dayIndex);
+      return updateScheduleRow(prev, dayIndex, { is_active: !current.is_active });
+    });
   };
 
   const handleTimeChange = (dayIndex, field, value) => {
-    setSchedules((prev) =>
-      prev.map((s) => (s.day_of_week === dayIndex ? { ...s, [field]: value } : s))
-    );
+    setSchedules((prev) => updateScheduleRow(prev, dayIndex, { [field]: value }));
   };
 
   const handleSave = async (dayIndex) => {
@@ -71,14 +91,19 @@ export default function ScheduleView({ selectedLabId = 1, labs = [] }) {
     e.preventDefault();
     if (!newDate || !newReason) return;
     try {
-      await api.saveScheduleException(labId, {
+      await api.saveScheduleException(labId, buildScheduleExceptionPayload({
         exception_date: newDate,
         reason: newReason,
-        is_cancelled: true,
-      });
+        type: newType,
+        wake_time: newWakeTime,
+        shutdown_time: newShutdownTime,
+      }));
       setNewDate('');
       setNewReason('');
-      fetchSchedules();
+      setNewType('skip');
+      setNewWakeTime('');
+      setNewShutdownTime('');
+      setReloadKey((value) => value + 1);
     } catch (err) {
       alert(err.message || 'Gagal menyimpan pengecualian');
     }
@@ -118,18 +143,19 @@ export default function ScheduleView({ selectedLabId = 1, labs = [] }) {
         </div>
       )}
 
+      {error && (
+        <div role="alert" className="p-3 bg-rose-50 text-rose-700 border border-rose-200 rounded-2xl text-xs font-semibold">
+          {error}
+        </div>
+      )}
+
       {/* Weekly Schedule Table */}
       <div className="bg-white rounded-3xl p-6 border border-slate-100 shadow-[0_4px_25px_-5px_rgba(0,0,0,0.03)]">
         <h3 className="font-bold text-slate-900 text-sm mb-4">Jadwal Mingguan (Senin — Minggu)</h3>
 
         <div className="divide-y divide-slate-100">
-          {[1, 2, 3, 4, 5, 6, 0].map((dayIdx) => {
-            const sched = schedules.find((s) => s.day_of_week === dayIdx) || {
-              day_of_week: dayIdx,
-              wake_time: '07:30',
-              shutdown_time: '17:00',
-              is_active: dayIdx >= 1 && dayIdx <= 5,
-            };
+          {WEEK_DAYS.map((dayIdx) => {
+            const sched = schedules.find((s) => s.day_of_week === dayIdx);
 
             return (
               <div key={dayIdx} className="py-3.5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -211,6 +237,21 @@ export default function ScheduleView({ selectedLabId = 1, labs = [] }) {
             className="flex-1 min-w-[200px] bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-800"
             required
           />
+          <select
+            aria-label="Tipe pengecualian"
+            value={newType}
+            onChange={(e) => setNewType(e.target.value)}
+            className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-medium text-slate-800"
+          >
+            <option value="skip">Lewati jadwal</option>
+            <option value="override">Override waktu</option>
+          </select>
+          {newType === 'override' && (
+            <>
+              <input aria-label="Jam wake override" type="time" required value={newWakeTime} onChange={(e) => setNewWakeTime(e.target.value)} className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs" />
+              <input aria-label="Jam shutdown override" type="time" required value={newShutdownTime} onChange={(e) => setNewShutdownTime(e.target.value)} className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs" />
+            </>
+          )}
           <button
             type="submit"
             className="flex items-center gap-1.5 px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
@@ -232,9 +273,26 @@ export default function ScheduleView({ selectedLabId = 1, labs = [] }) {
                   <span className="font-mono font-bold text-slate-800">{ex.exception_date}</span>
                   <span className="text-slate-600">{ex.reason}</span>
                 </div>
-                <span className="text-[11px] font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">
-                  Lewati Booting Otomatis
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">
+                    {ex.type === 'override' ? 'Jadwal Override' : 'Lewati Booting Otomatis'}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={`Hapus pengecualian ${ex.exception_date}`}
+                    onClick={async () => {
+                      try {
+                        await api.deleteScheduleException(labId, ex.id);
+                        setReloadKey((value) => value + 1);
+                      } catch (err) {
+                        setError(err.message || 'Gagal menghapus pengecualian.');
+                      }
+                    }}
+                    className="text-rose-600 text-[11px] font-semibold"
+                  >
+                    Hapus
+                  </button>
+                </div>
               </div>
             ))
           )}

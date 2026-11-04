@@ -19,14 +19,15 @@ type Config struct {
 
 // ServerConfig holds HTTP API fallback settings.
 type ServerConfig struct {
-	URL string `yaml:"url"`
+	URL   string `yaml:"url"`
+	Token string `yaml:"token"`
 }
 
 // AgentConfig holds agent-specific settings.
 type AgentConfig struct {
-	Version          string `yaml:"version"`
+	Version           string `yaml:"version"`
 	TelemetryInterval int    `yaml:"telemetry_interval"` // seconds
-	LogLevel         string `yaml:"log_level"`
+	LogLevel          string `yaml:"log_level"`
 }
 
 // MQTTConfig holds MQTT broker connection settings.
@@ -55,9 +56,9 @@ func Load(path string) (*Config, error) {
 
 	cfg := &Config{
 		Agent: AgentConfig{
-			Version:          "1.0.0",
+			Version:           "1.0.0",
 			TelemetryInterval: 15,
-			LogLevel:         "info",
+			LogLevel:          "info",
 		},
 		MQTT: MQTTConfig{
 			BrokerPort: 8883,
@@ -99,8 +100,7 @@ func Load(path string) (*Config, error) {
 		case strings.HasPrefix(lower, "rps"):
 			cfg.Lab.LabID = "lab-rps"
 		default:
-			// Fallback: if lab_id still not resolved, default to lab-rpl-1
-			cfg.Lab.LabID = "lab-rpl-1"
+			return nil, fmt.Errorf("lab_id cannot be inferred from pc_id %q; configure it explicitly", cfg.Lab.PCID)
 		}
 	}
 

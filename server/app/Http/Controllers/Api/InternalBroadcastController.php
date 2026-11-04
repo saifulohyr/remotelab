@@ -3,50 +3,50 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Lab;
 use App\Models\Notification as AppNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
-/**
- * Internal endpoint called by the Go MQTT worker to trigger broadcasts and store notifications.
- * Protected by a shared API token (X-Internal-Token header).
- */
 class InternalBroadcastController extends Controller
 {
-    /**
-     * POST /api/internal/broadcast — Receive events from the Go worker.
-     */
     public function handle(Request $request): JsonResponse
     {
-        // Validate internal token
-        $token = $request->header('X-Internal-Token');
-        if ($token !== config('services.internal.token')) {
+        $expected = config('services.internal.token');
+        $provided = $request->header('X-Internal-Token', '');
+        if (! is_string($expected) || $expected === '' || ! is_string($provided) || ! hash_equals($expected, $provided)) {
             return response()->json(['message' => 'Unauthorized'], 401);
         }
 
-        $type = $request->input('type');
-        $channel = $request->input('channel');
-        $data = $request->input('data');
+        $validated = $request->validate([
+            'type' => 'required|string|max:100',
+            'channel' => 'required|string|max:150',
+            'data' => 'required|array',
+            'data.pc_id' => 'nullable|integer',
+            'data.type' => 'nullable|string|max:100',
+            'data.message' => 'nullable|string|max:10000',
+        ]);
 
-        // Store notification events in database
-        if ($type === 'notification') {
-            $labSlug = str_replace('lab.', '', $channel);
-            $lab = \App\Models\Lab::where('slug', $labSlug)->first();
-
-            if ($lab) {
-                AppNotification::create([
-                    'lab_id' => $lab->id,
-                    'pc_id' => $data['pc_id'] ?? null,
-                    'type' => $data['type'] ?? 'unknown',
-                    'message' => $data['message'] ?? '',
-                    'data' => $data,
-                    'created_at' => now(),
-                ]);
+        if ($validated['type'] === 'notification') {
+            if (! str_starts_with($validated['channel'], 'lab.')) {
+                return response()->json(['message' => 'Channel notifikasi tidak valid.'], 422);
             }
-        }
 
-        // TODO: Broadcast via Reverb when set up
-        // event(new \App\Events\BroadcastEvent($type, $channel, $data));
+            $lab = Lab::where('slug', substr($validated['channel'], 4))->first();
+            if (! $lab) {
+                return response()->json(['message' => 'Lab tidak dikenal.'], 422);
+            }
+
+            $data = $validated['data'];
+            AppNotification::create([
+                'lab_id' => $lab->id,
+                'pc_id' => $data['pc_id'] ?? null,
+                'type' => $data['type'] ?? 'unknown',
+                'message' => $data['message'] ?? '',
+                'data' => $data,
+                'created_at' => now(),
+            ]);
+        }
 
         return response()->json(['status' => 'ok']);
     }

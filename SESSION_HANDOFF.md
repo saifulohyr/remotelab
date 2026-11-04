@@ -40,30 +40,24 @@ SIMLab is a centralized remote laboratory management and monitoring system for u
 
 - **Host Machine**: Ubuntu Linux (noble) x86_64
 - **System User**: `sir`
-- **Sudo Password**: `sir999`
+- **Sudo Password**: <removed; rotate immediately>
 - **PHP**: PHP 8.3.6 (with `pdo_sqlite`, `sqlite3`, `curl`, `mbstring`, `pdo_mysql`, `openssl`)
 - **Go**: `go1.22.2 linux/amd64`
 - **Broker**: Mosquitto MQTT & `mosquitto-clients` installed
 - **Database**: SQLite (`server/database/database.sqlite`)
 
-### 🔑 Seeded Accounts (Ready to use)
-| Role | Email | Password | Access Scope |
-|------|-------|----------|--------------|
-| **Superadmin** | `admin@simlab.local` | `password` | All 6 Labs, All PCs, All Commands |
-| **Operator 1** | `op1@simlab.local` | `password` | Lab Komputer 1, 2, 3 |
-| **Operator 2** | `op2@simlab.local` | `password` | Lab Komputer 4, 5, 6 |
-
-### 🔑 Shared Tokens & Environment
-- **Laravel `.env` Location**: `/home/sir/remotelab/server/.env`
-- **Internal API Token**: Configured in `.env` as `INTERNAL_API_TOKEN=simlab-secret-internal-token-change-in-production`
-- **Database Driver**: `DB_CONNECTION=sqlite`
+### 🔑 Credentials & Environment
+Credential values have been removed from this handoff. Provision local development
+accounts through a private, ignored environment file. Any credential that was
+previously stored in this document or committed configuration must be rotated.
+The Laravel API token and agent token have no insecure application fallback.
 
 ---
 
 ## 📊 3. Implementation Status By Component
 
 ### ✅ A. Go Agent (`agent/`) — 100% Core Complete
-- **Path**: `/home/sir/remotelab/agent`
+- **Path**: `/opt/remotelab/agent`
 - **Features**:
   - Telemetry collection: CPU usage, RAM usage, storage/disk, uptime, logged-in user.
   - MQTT Client with TLS support, automatic reconnection, and LWT (`simlab/labs/{lab}/pcs/{pc}/status` -> `offline`).
@@ -73,7 +67,7 @@ SIMLab is a centralized remote laboratory management and monitoring system for u
   - Precompiled binary ready: `agent/simlab-agent`.
 
 ### ✅ B. Go WoL Relay (`relay/`) — 100% Core Complete
-- **Path**: `/home/sir/remotelab/relay`
+- **Path**: `/opt/remotelab/relay`
 - **Features**:
   - WoL Magic Packet generation and broadcast over UDP port 9.
   - Anti-surge stagger delay (`delay_between_pc_ms: 1500ms`) and retry logic.
@@ -83,7 +77,7 @@ SIMLab is a centralized remote laboratory management and monitoring system for u
   - Precompiled binary ready: `relay/simlab-relay`.
 
 ### ✅ C. Go MQTT Worker (`worker/`) — 100% Core Complete
-- **Path**: `/home/sir/remotelab/worker`
+- **Path**: `/opt/remotelab/worker`
 - **Features**:
   - MQTT subscriber subscribing to telemetry (`simlab/labs/+/pcs/+/telemetry`), status, command acknowledgments, and relay events.
   - Batch telemetry buffer and periodic database flush.
@@ -92,13 +86,13 @@ SIMLab is a centralized remote laboratory management and monitoring system for u
   - Precompiled binary ready: `worker/simlab-worker`.
 
 ### ✅ D. Mosquitto MQTT Broker (`mosquitto/`) — 100% Configured
-- **Path**: `/home/sir/remotelab/mosquitto`
+- **Path**: `/opt/remotelab/mosquitto`
 - **Configs**:
   - `mosquitto/mosquitto.conf`: TCP listener (1883), TLS listener (8883), authentication & ACL enablement.
   - `mosquitto/acl.conf`: Strict topic isolation for agents (`agent-%u`), relays (`relay-%u`), and full access for worker & server.
 
 ### ✅ E. Laravel Backend API (`server/`) — 100% Backend Complete & Tested
-- **Path**: `/home/sir/remotelab/server`
+- **Path**: `/opt/remotelab/server`
 - **Database**: Migrated and seeded (`php artisan migrate:fresh --seed` executed cleanly).
   - 1 Superadmin, 2 Operators.
   - 6 Labs (`Lab Komputer 1` to `6`).
@@ -135,7 +129,7 @@ SIMLab is a centralized remote laboratory management and monitoring system for u
   - `POST /api/internal/broadcast` — Internal worker event ingestion endpoint.
 
 ### ⏳ F. Dashboard Frontend (`dashboard/`) — Ready to Build
-- **Path**: `/home/sir/remotelab/dashboard`
+- **Path**: `/opt/remotelab/dashboard`
 - **Status**: Not started yet. Ready to build with modern, sleek dark-mode UI.
 
 ---
@@ -147,12 +141,12 @@ SIMLab is a centralized remote laboratory management and monitoring system for u
 # Check status:
 sudo systemctl status mosquitto
 # Or run with project config:
-mosquitto -c /home/sir/remotelab/mosquitto/mosquitto.conf -v
+mosquitto -c /opt/remotelab/mosquitto/mosquitto.conf -v
 ```
 
 ### 2. Start Laravel API Server
 ```bash
-cd /home/sir/remotelab/server
+cd /opt/remotelab/server
 php artisan serve --host=127.0.0.1 --port=8000
 ```
 
@@ -161,7 +155,7 @@ php artisan serve --host=127.0.0.1 --port=8000
 # Login as admin:
 curl -s -X POST http://127.0.0.1:8000/api/login \
   -H "Content-Type: application/json" \
-  -d '{"email":"admin@simlab.local","password":"password"}'
+  -d '{"email":"admin@simlab.local","password":"<ADMIN_PASSWORD>"}'
 
 # Response contains: {"token":"1|xxx...","user":{"id":1,"name":"Admin SIMLab","role":"superadmin"}}
 
@@ -174,21 +168,21 @@ curl -s -X GET http://127.0.0.1:8000/api/labs \
 ### 4. Run Go Components
 ```bash
 # Worker:
-cd /home/sir/remotelab/worker
+cd /opt/remotelab/worker
 ./simlab-worker -config config.yaml
 
 # Relay:
-cd /home/sir/remotelab/relay
+cd /opt/remotelab/relay
 ./simlab-relay -config config.yaml
 
 # Agent:
-cd /home/sir/remotelab/agent
+cd /opt/remotelab/agent
 ./simlab-agent -config config.yaml
 ```
 
 ### 5. Quick One-Line Health Check (Run anytime to verify backend & binaries)
 ```bash
-cd /home/sir/remotelab/server && php -r "require 'vendor/autoload.php'; \$app = require_once 'bootstrap/app.php'; \$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); echo '✅ DB Healthy! Labs: ' . App\Models\Lab::count() . ', PCs: ' . App\Models\Pc::count() . PHP_EOL;" && ls -lh /home/sir/remotelab/{agent,relay,worker}/simlab-*
+cd /opt/remotelab/server && php -r "require 'vendor/autoload.php'; \$app = require_once 'bootstrap/app.php'; \$app->make(Illuminate\Contracts\Console\Kernel::class)->bootstrap(); echo '✅ DB Healthy! Labs: ' . App\Models\Lab::count() . ', PCs: ' . App\Models\Pc::count() . PHP_EOL;" && ls -lh /opt/remotelab/{agent,relay,worker}/simlab-*
 ```
 
 ---

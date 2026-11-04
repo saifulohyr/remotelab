@@ -11,17 +11,24 @@ import (
 	"time"
 )
 
+// unixToUTCWall converts a Unix timestamp to a UTC wall-clock string that is
+// independent of the MySQL session time zone. Laravel stores UTC wall-clock
+// values in TIMESTAMP columns, so writing FROM_UNIXTIME() directly would make
+// MQTT metrics five hours off on a host running in EST.
+const unixToUTCWall = "CONVERT_TZ(FROM_UNIXTIME(?), @@session.time_zone, '+00:00')"
+
 // TelemetryMessage represents incoming telemetry from an agent.
 type TelemetryMessage struct {
-	PCID         int     `json:"-"`
-	CPUPercent   float64 `json:"cpu_percent"`
-	RAMPercent   float64 `json:"ram_percent"`
-	DiskPercent  float64 `json:"disk_percent"`
-	UptimeSeconds uint64 `json:"uptime_seconds"`
-	Hostname     string  `json:"hostname"`
-	IPAddress    string  `json:"ip_address"`
-	AgentVersion string  `json:"agent_version"`
-	Timestamp    int64   `json:"timestamp"`
+	PCID          int     `json:"-"`
+	SampleID      string  `json:"sample_id"`
+	CPUPercent    float64 `json:"cpu_percent"`
+	RAMPercent    float64 `json:"ram_percent"`
+	DiskPercent   float64 `json:"disk_percent"`
+	UptimeSeconds uint64  `json:"uptime_seconds"`
+	Hostname      string  `json:"hostname"`
+	IPAddress     string  `json:"ip_address"`
+	AgentVersion  string  `json:"agent_version"`
+	Timestamp     int64   `json:"timestamp"`
 }
 
 // StatusMessage represents a status update from an agent.
@@ -39,6 +46,34 @@ type AckMessage struct {
 	CommandID string `json:"command_id"`
 	Status    string `json:"status"`
 	Message   string `json:"message"`
+	Output    string `json:"output"`
+	ExitCode  int    `json:"exit_code"`
+	Timestamp int64  `json:"timestamp"`
+}
+
+// RelayAckMessage represents a Wake-on-LAN acknowledgment from a relay.
+type RelayAckMessage struct {
+	CommandID    string           `json:"command_id"`
+	Status       string           `json:"status"`
+	Total        int              `json:"total"`
+	SuccessCount int              `json:"success_count"`
+	FailedCount  int              `json:"failed_count"`
+	Results      []RelayAckResult `json:"results"`
+	Output       string           `json:"output"`
+	Timestamp    int64            `json:"timestamp"`
+}
+
+// RelayAckResult reports the packet-send result for one target MAC address.
+type RelayAckResult struct {
+	MAC    string `json:"mac"`
+	Status string `json:"status"`
+	Error  string `json:"error"`
+}
+
+// RelayStatusMessage represents a relay heartbeat message.
+type RelayStatusMessage struct {
+	Status    string `json:"status"`
+	LabID     string `json:"lab_id"`
 	Timestamp int64  `json:"timestamp"`
 }
 
@@ -100,13 +135,30 @@ func (bi *BatchIngestor) insertBatch(batch []TelemetryMessage) error {
 		return nil
 	}
 
-	query := "INSERT INTO metrics (pc_id, cpu_percent, ram_percent, disk_percent, uptime_seconds, recorded_at) VALUES "
+	query := "INSERT IGNORE INTO metrics (pc_id, sample_id, cpu_percent, ram_percent, disk_percent, uptime_seconds, recorded_at) VALUES "
 	valueStrings := make([]string, 0, len(batch))
-	valueArgs := make([]interface{}, 0, len(batch)*6)
+	valueArgs := make([]interface{}, 0, len(batch)*7)
+	seen := make(map[string]struct{}, len(batch))
+	inserted := 0
 
 	for _, msg := range batch {
-		valueStrings = append(valueStrings, "(?, ?, ?, ?, ?, FROM_UNIXTIME(?))")
-		valueArgs = append(valueArgs, msg.PCID, msg.CPUPercent, msg.RAMPercent, msg.DiskPercent, msg.UptimeSeconds, msg.Timestamp)
+		var sampleID interface{}
+		if msg.SampleID != "" {
+			sampleID = msg.SampleID
+			key := fmt.Sprintf("%d:%s", msg.PCID, msg.SampleID)
+			if _, exists := seen[key]; exists {
+				continue
+			}
+			seen[key] = struct{}{}
+		}
+
+		valueStrings = append(valueStrings, "(?, ?, ?, ?, ?, ?, "+unixToUTCWall+")")
+		valueArgs = append(valueArgs, msg.PCID, sampleID, msg.CPUPercent, msg.RAMPercent, msg.DiskPercent, msg.UptimeSeconds, msg.Timestamp)
+		inserted++
+	}
+
+	if inserted == 0 {
+		return nil
 	}
 
 	query += strings.Join(valueStrings, ", ")
@@ -115,7 +167,7 @@ func (bi *BatchIngestor) insertBatch(batch []TelemetryMessage) error {
 		return fmt.Errorf("batch insert failed: %w", err)
 	}
 
-	log.Printf("[Ingest] Inserted %d metric records", len(batch))
+	log.Printf("[Ingest] Inserted %d metric records", inserted)
 	return nil
 }
 
@@ -152,9 +204,18 @@ func NewStatusUpdater(db *sql.DB) *StatusUpdater {
 
 // UpdatePCStatus updates the PC status and related fields in the database.
 func (su *StatusUpdater) UpdatePCStatus(pcID int, status StatusMessage) error {
-	query := `UPDATE pcs SET status = ?, last_seen_at = FROM_UNIXTIME(?), ip_address = ?, 
-	          agent_version = ?, updated_at = NOW() WHERE id = ?`
-	_, err := su.db.Exec(query, status.Status, status.Timestamp, status.IP, status.Version, pcID)
+	changed, err := su.db.Exec("UPDATE pcs SET status = ?, updated_at = UTC_TIMESTAMP() WHERE id = ? AND status <> ?", status.Status, pcID, status.Status)
+	if err != nil {
+		return fmt.Errorf("failed to compare PC status: %w", err)
+	}
+	changedRows, err := changed.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to inspect PC status change: %w", err)
+	}
+
+	query := `UPDATE pcs SET status = ?, last_seen_at = ` + unixToUTCWall + `, ip_address = ?,
+	          agent_version = ?, updated_at = UTC_TIMESTAMP() WHERE id = ?`
+	_, err = su.db.Exec(query, status.Status, status.Timestamp, status.IP, status.Version, pcID)
 	if err != nil {
 		return fmt.Errorf("failed to update PC status: %w", err)
 	}
@@ -170,9 +231,9 @@ func (su *StatusUpdater) UpdatePCStatus(pcID int, status StatusMessage) error {
 		eventType = "shutdown_abnormal"
 	}
 
-	if eventType != "" {
+	if eventType != "" && changedRows > 0 {
 		_, err = su.db.Exec(
-			`INSERT INTO power_events (pc_id, event_type, source, created_at) VALUES (?, ?, 'agent', NOW())`,
+			`INSERT INTO power_events (pc_id, event_type, source, created_at) VALUES (?, ?, 'agent', UTC_TIMESTAMP())`,
 			pcID, eventType,
 		)
 		if err != nil {
@@ -185,27 +246,33 @@ func (su *StatusUpdater) UpdatePCStatus(pcID int, status StatusMessage) error {
 
 // UpdatePCTelemetry updates the PC's last_seen timestamp and live metrics.
 func (su *StatusUpdater) UpdatePCTelemetry(pcID int, msg TelemetryMessage) error {
-	query := `UPDATE pcs SET last_seen_at = FROM_UNIXTIME(?), ip_address = ?, 
-	          agent_version = ?, status = 'online', updated_at = NOW() WHERE id = ?`
-	_, err := su.db.Exec(query, msg.Timestamp, msg.IPAddress, msg.AgentVersion, pcID)
+	query := `UPDATE pcs SET last_seen_at = ` + unixToUTCWall + `, ip_address = ?,
+	          agent_version = ?, status = 'online', updated_at = UTC_TIMESTAMP()
+	          WHERE id = ? AND (last_seen_at IS NULL OR last_seen_at <= ` + unixToUTCWall + `)`
+	_, err := su.db.Exec(query, msg.Timestamp, msg.IPAddress, msg.AgentVersion, pcID, msg.Timestamp)
 	return err
 }
 
 // ProcessAck processes a command acknowledgment and updates command_results.
 func (su *StatusUpdater) ProcessAck(pcID int, ack AckMessage) error {
-	// Find the command_log by command_id
+	// Resolve an existing target only; an ACK must never attach a new PC to a command.
 	var commandLogID int
-	err := su.db.QueryRow("SELECT id FROM command_logs WHERE command_id = ?", ack.CommandID).Scan(&commandLogID)
+	err := su.db.QueryRow(`SELECT cl.id FROM command_logs cl
+		JOIN command_results cr ON cr.command_log_id = cl.id
+		WHERE cl.command_id = ? AND cr.pc_id = ?`, ack.CommandID, pcID).Scan(&commandLogID)
 	if err != nil {
-		return fmt.Errorf("command_log not found for command_id %s: %w", ack.CommandID, err)
+		return fmt.Errorf("command target not found for command_id %s and pc_id %d: %w", ack.CommandID, pcID, err)
 	}
 
-	// Upsert command_result
-	query := `INSERT INTO command_results (command_log_id, pc_id, status, error_message, delivered_at, executed_at)
-	          VALUES (?, ?, ?, ?, ?, ?)
-	          ON DUPLICATE KEY UPDATE status = VALUES(status), error_message = VALUES(error_message),
-	          delivered_at = COALESCE(delivered_at, VALUES(delivered_at)),
-	          executed_at = VALUES(executed_at)`
+	// Upsert command_result. Late delivery and duplicate ACKs must not replace
+	// a terminal execution result or its output.
+	query := `UPDATE command_results SET
+	          status = IF(status IN ('executed', 'failed', 'rejected_expired', 'rejected_duplicate', 'rejected_unknown', 'timeout') AND ? IN ('delivered', 'rejected_duplicate'), status, ?),
+	          error_message = IF(status IN ('executed', 'failed', 'rejected_expired', 'rejected_duplicate', 'rejected_unknown', 'timeout') AND ? IN ('delivered', 'rejected_duplicate'), error_message, ?),
+	          output = IF(status IN ('executed', 'failed', 'rejected_expired', 'rejected_duplicate', 'rejected_unknown', 'timeout') AND ? IN ('delivered', 'rejected_duplicate'), output, ?),
+	          delivered_at = COALESCE(delivered_at, ?),
+	          executed_at = COALESCE(executed_at, ?)
+	          WHERE command_log_id = ? AND pc_id = ?`
 
 	var deliveredAt, executedAt *time.Time
 	now := time.Now()
@@ -216,9 +283,58 @@ func (su *StatusUpdater) ProcessAck(pcID int, ack AckMessage) error {
 		executedAt = &now
 	}
 
-	_, err = su.db.Exec(query, commandLogID, pcID, ack.Status, ack.Message, deliveredAt, executedAt)
+	_, err = su.db.Exec(query,
+		ack.Status, ack.Status,
+		ack.Status, ack.Message,
+		ack.Status, ack.Output,
+		deliveredAt, executedAt, commandLogID, pcID)
 	if err != nil {
 		return fmt.Errorf("failed to upsert command_result: %w", err)
+	}
+
+	return nil
+}
+
+// ProcessRelayAck updates only the command result matching each target's MAC.
+func (su *StatusUpdater) ProcessRelayAck(labID string, ack RelayAckMessage) error {
+	if err := validateRelayAck(ack); err != nil {
+		return err
+	}
+
+	var commandLogID int
+	if err := su.db.QueryRow("SELECT id FROM command_logs WHERE command_id = ?", ack.CommandID).Scan(&commandLogID); err != nil {
+		return fmt.Errorf("command_log not found for command_id %s: %w", ack.CommandID, err)
+	}
+
+	for _, result := range ack.Results {
+		var pcID int
+		if err := su.db.QueryRow(`SELECT p.id FROM pcs p JOIN labs l ON p.lab_id = l.id
+			WHERE l.slug = ? AND p.mac_address = ? AND EXISTS
+			(SELECT 1 FROM command_results cr WHERE cr.command_log_id = ? AND cr.pc_id = p.id)`, labID, result.MAC, commandLogID).Scan(&pcID); err != nil {
+			return fmt.Errorf("PC not found for MAC %s: %w", result.MAC, err)
+		}
+
+		now := time.Now()
+		resultRow, err := su.db.Exec(`UPDATE command_results SET status = ?, error_message = ?, output = ?, executed_at = ?
+			WHERE command_log_id = ? AND pc_id = ?`, result.Status, result.Error, ack.Output, now, commandLogID, pcID)
+		if err != nil {
+			return fmt.Errorf("failed to update relay command_result for MAC %s: %w", result.MAC, err)
+		}
+		affected, err := resultRow.RowsAffected()
+		if err != nil {
+			return fmt.Errorf("failed to inspect relay result update: %w", err)
+		}
+		if affected == 0 {
+			continue // Identical relay ACK: already persisted, do not duplicate events.
+		}
+		eventType := "wake_success"
+		if result.Status == "failed" {
+			eventType = "wake_failed"
+		}
+		if _, err := su.db.Exec(`INSERT INTO power_events (pc_id, event_type, source, created_at)
+			VALUES (?, ?, 'relay', ?)`, pcID, eventType, now); err != nil {
+			return fmt.Errorf("failed to record relay power event: %w", err)
+		}
 	}
 
 	return nil
@@ -245,6 +361,45 @@ func ParseStatus(payload []byte) (*StatusMessage, error) {
 // ParseAck parses a JSON ack payload.
 func ParseAck(payload []byte) (*AckMessage, error) {
 	var msg AckMessage
+	if err := json.Unmarshal(payload, &msg); err != nil {
+		return nil, err
+	}
+	return &msg, nil
+}
+
+// ParseRelayAck parses and validates a JSON relay ack payload.
+func ParseRelayAck(payload []byte) (*RelayAckMessage, error) {
+	var msg RelayAckMessage
+	if err := json.Unmarshal(payload, &msg); err != nil {
+		return nil, err
+	}
+	if err := validateRelayAck(msg); err != nil {
+		return nil, err
+	}
+	return &msg, nil
+}
+
+func validateRelayAck(msg RelayAckMessage) error {
+	if msg.CommandID == "" {
+		return fmt.Errorf("relay ack command_id is required")
+	}
+	if msg.Results == nil {
+		return fmt.Errorf("relay ack results are required")
+	}
+	for _, result := range msg.Results {
+		if result.MAC == "" {
+			return fmt.Errorf("relay ack result MAC is required")
+		}
+		if result.Status != "executed" && result.Status != "failed" {
+			return fmt.Errorf("invalid relay result status %q for MAC %s", result.Status, result.MAC)
+		}
+	}
+	return nil
+}
+
+// ParseRelayStatus parses a JSON relay status payload.
+func ParseRelayStatus(payload []byte) (*RelayStatusMessage, error) {
+	var msg RelayStatusMessage
 	if err := json.Unmarshal(payload, &msg); err != nil {
 		return nil, err
 	}

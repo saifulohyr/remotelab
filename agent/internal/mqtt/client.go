@@ -37,6 +37,24 @@ type StatusPayload struct {
 	Version   string `json:"version,omitempty"`
 }
 
+func newTLSConfig(caCertPath string) (*tls.Config, error) {
+	tlsConfig := &tls.Config{MinVersion: tls.VersionTLS12}
+	if caCertPath == "" {
+		return tlsConfig, nil
+	}
+
+	caCert, err := os.ReadFile(caCertPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read CA cert: %w", err)
+	}
+	caCertPool := x509.NewCertPool()
+	if !caCertPool.AppendCertsFromPEM(caCert) {
+		return nil, fmt.Errorf("failed to parse CA cert")
+	}
+	tlsConfig.RootCAs = caCertPool
+	return tlsConfig, nil
+}
+
 // NewClient creates a new MQTT client for the SIMLab agent.
 func NewClient(cfg *config.Config) (*Client, error) {
 	c := &Client{
@@ -51,24 +69,10 @@ func NewClient(cfg *config.Config) (*Client, error) {
 	if cfg.MQTT.UseTLS {
 		brokerURL = fmt.Sprintf("ssl://%s:%d", cfg.MQTT.BrokerHost, cfg.MQTT.BrokerPort)
 
-		tlsConfig := &tls.Config{
-			MinVersion:         tls.VersionTLS12,
-			InsecureSkipVerify: true,
+		tlsConfig, err := newTLSConfig(cfg.MQTT.CACertPath)
+		if err != nil {
+			return nil, err
 		}
-
-		// Load CA certificate if provided
-		if cfg.MQTT.CACertPath != "" {
-			caCert, err := os.ReadFile(cfg.MQTT.CACertPath)
-			if err != nil {
-				return nil, fmt.Errorf("failed to read CA cert: %w", err)
-			}
-			caCertPool := x509.NewCertPool()
-			if !caCertPool.AppendCertsFromPEM(caCert) {
-				return nil, fmt.Errorf("failed to parse CA cert")
-			}
-			tlsConfig.RootCAs = caCertPool
-		}
-
 		opts.SetTLSConfig(tlsConfig)
 	}
 

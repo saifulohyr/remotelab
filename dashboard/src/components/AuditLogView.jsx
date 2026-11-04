@@ -1,29 +1,61 @@
 import React, { useState, useEffect } from 'react';
 import { Download, CheckCircle2, Clock, AlertTriangle, X, Terminal, ChevronRight } from 'lucide-react';
 import { api } from '../api';
+import { downloadCommandsCsv } from '../exportCommands';
 
 export default function AuditLogView() {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedLog, setSelectedLog] = useState(null);
+  const [error, setError] = useState(null);
+  const [exporting, setExporting] = useState(false);
+  const [page, setPage] = useState(1);
+  const [lastPage, setLastPage] = useState(1);
 
   useEffect(() => {
-    fetchLogs();
-  }, []);
+    let active = true;
+    setLoading(true);
+    api.getCommands(page)
+      .then((res) => {
+        if (!active) return;
+        const items = Array.isArray(res?.data) ? res.data : (res?.data?.data || []);
+        setLogs(items);
+        setLastPage(res?.last_page || 1);
+        setError(null);
+      })
+      .catch((err) => {
+        if (active) setError(err.message || 'Gagal memuat riwayat perintah.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
+  }, [page]);
 
   const fetchLogs = async () => {
     setLoading(true);
+    setError(null);
     try {
-      const res = await api.getCommands();
-      if (res?.data) {
-        // If paginated response (data.data) or array (data)
-        const items = Array.isArray(res.data) ? res.data : (res.data.data || []);
-        setLogs(items);
-      }
+      const res = await api.getCommands(page);
+      const items = Array.isArray(res?.data) ? res.data : (res?.data?.data || []);
+      setLogs(items);
+      setLastPage(res?.last_page || 1);
     } catch (err) {
-      console.error(err);
+      setError(err.message || 'Gagal memuat riwayat perintah.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleExport = async () => {
+    setExporting(true);
+    setError(null);
+    try {
+      await downloadCommandsCsv();
+    } catch (err) {
+      setError(err.message || 'Gagal mengekspor CSV.');
+    } finally {
+      setExporting(false);
     }
   };
 
@@ -88,17 +120,22 @@ export default function AuditLogView() {
           >
             Refresh
           </button>
-          <a
-            href={api.exportCommandsUrl()}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-xs font-medium text-zinc-700 transition-colors"
+          <button
+            onClick={handleExport}
+            disabled={exporting}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white border border-zinc-200 hover:bg-zinc-50 text-xs font-medium text-zinc-700 transition-colors disabled:opacity-50"
           >
             <Download className="w-3.5 h-3.5 text-zinc-600" />
-            <span>Ekspor CSV</span>
-          </a>
+            <span>{exporting ? 'Mengekspor...' : 'Ekspor CSV'}</span>
+          </button>
         </div>
       </div>
+
+      {error && (
+        <div role="alert" className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700">
+          {error}
+        </div>
+      )}
 
       <div className="bg-white rounded-xl border border-zinc-200 shadow-2xs overflow-hidden">
         <div className="overflow-x-auto">
@@ -164,6 +201,14 @@ export default function AuditLogView() {
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <div className="flex items-center justify-between text-xs text-zinc-600">
+        <span>Halaman {page} dari {lastPage}</span>
+        <div className="flex gap-2">
+          <button disabled={page <= 1 || loading} onClick={() => setPage((value) => value - 1)} className="px-3 py-1 border rounded disabled:opacity-40">Sebelumnya</button>
+          <button disabled={page >= lastPage || loading} onClick={() => setPage((value) => value + 1)} className="px-3 py-1 border rounded disabled:opacity-40">Berikutnya</button>
         </div>
       </div>
 

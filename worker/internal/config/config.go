@@ -37,8 +37,8 @@ type DatabaseConfig struct {
 
 // WorkerConfig holds worker-specific settings.
 type WorkerConfig struct {
-	BatchSize     int `yaml:"batch_size"`      // max rows per batch insert
-	FlushInterval int `yaml:"flush_interval"`  // milliseconds between flushes
+	BatchSize        int `yaml:"batch_size"`        // max rows per batch insert
+	FlushInterval    int `yaml:"flush_interval"`    // milliseconds between flushes
 	OfflineThreshold int `yaml:"offline_threshold"` // seconds before marking PC offline
 }
 
@@ -49,8 +49,13 @@ type LaravelConfig struct {
 }
 
 // DSN returns the MySQL Data Source Name.
+//
+// loc=UTC makes the driver format time.Time arguments (ACK timestamps and
+// relay events) as UTC wall time, matching Laravel's UTC application clock.
+// MySQL TIMESTAMP columns are still interpreted in the session time zone, so
+// SQL that receives Unix timestamps uses CONVERT_TZ(..., '+00:00') explicitly.
 func (c *DatabaseConfig) DSN() string {
-	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true&loc=Local",
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true&loc=UTC",
 		c.Username, c.Password, c.Host, c.Port, c.Name)
 }
 
@@ -72,8 +77,8 @@ func Load(path string) (*Config, error) {
 			Name: "simlab",
 		},
 		Worker: WorkerConfig{
-			BatchSize:     100,
-			FlushInterval: 2000,
+			BatchSize:        100,
+			FlushInterval:    2000,
 			OfflineThreshold: 45,
 		},
 		Laravel: LaravelConfig{

@@ -21,7 +21,7 @@ class PcController extends Controller
 
         // Check lab access for operator
         $user = $request->user();
-        if ($user->isOperator() && !$user->hasLabAccess($pcModel->lab_id)) {
+        if ($user->isOperator() && ! $user->hasLabAccess($pcModel->lab_id)) {
             return response()->json(['message' => 'Akses ditolak.'], 403);
         }
 
@@ -64,6 +64,11 @@ class PcController extends Controller
      */
     public function metrics(Request $request, int $pc): JsonResponse
     {
+        $pcModel = Pc::findOrFail($pc);
+        if (! $request->user()->hasLabAccess($pcModel->lab_id)) {
+            return response()->json(['message' => 'Akses ditolak.'], 403);
+        }
+
         $range = $request->query('range', '1h');
 
         // Determine time range and data source
@@ -82,7 +87,7 @@ class PcController extends Controller
                 ->where('minute_at', '>=', $startTime)
                 ->orderBy('minute_at')
                 ->get()
-                ->map(fn($m) => [
+                ->map(fn ($m) => [
                     'timestamp' => $m->minute_at->toIso8601String(),
                     'cpu' => round($m->avg_cpu, 1),
                     'cpu_max' => round($m->max_cpu, 1),
@@ -96,7 +101,7 @@ class PcController extends Controller
                 ->where('recorded_at', '>=', $startTime)
                 ->orderBy('recorded_at')
                 ->get()
-                ->map(fn($m) => [
+                ->map(fn ($m) => [
                     'timestamp' => $m->recorded_at->toIso8601String(),
                     'cpu' => round($m->cpu_percent, 1),
                     'ram' => round($m->ram_percent, 1),
@@ -122,6 +127,11 @@ class PcController extends Controller
      */
     public function events(Request $request, int $pc): JsonResponse
     {
+        $pcModel = Pc::findOrFail($pc);
+        if (! $request->user()->hasLabAccess($pcModel->lab_id)) {
+            return response()->json(['message' => 'Akses ditolak.'], 403);
+        }
+
         $perPage = min($request->query('per_page', 25), 100);
 
         $events = PowerEvent::where('pc_id', $pc)
@@ -130,5 +140,37 @@ class PcController extends Controller
             ->paginate($perPage);
 
         return response()->json($events);
+    }
+
+    /**
+     * DELETE /api/pcs/{pc} — Permanently remove a decommissioned PC.
+     *
+     * Related telemetry, power events, command targets, and notifications are
+     * handled by the database foreign keys. This is intentionally a hard delete:
+     * a PC that has been uninstalled must disappear from the dashboard and must
+     * not be resurrected by a late telemetry packet.
+     */
+    public function destroy(Request $request, int $pc): JsonResponse
+    {
+        $pcModel = Pc::with('lab:id,name')->findOrFail($pc);
+        $user = $request->user();
+
+        if ($user->isOperator() && ! $user->hasLabAccess($pcModel->lab_id)) {
+            return response()->json(['message' => 'Akses ditolak.'], 403);
+        }
+
+        $hostname = $pcModel->hostname;
+        $labId = $pcModel->lab_id;
+
+        $pcModel->delete();
+
+        return response()->json([
+            'message' => "PC {$hostname} berhasil dihapus.",
+            'data' => [
+                'id' => $pc,
+                'hostname' => $hostname,
+                'lab_id' => $labId,
+            ],
+        ]);
     }
 }

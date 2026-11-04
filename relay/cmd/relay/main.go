@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -53,6 +54,24 @@ type RelayStatus struct {
 	Status    string `json:"status"`
 	LabID     string `json:"lab_id"`
 	Timestamp int64  `json:"timestamp"`
+}
+
+// WakeResult reports whether a magic packet was sent to one target.
+type WakeResult struct {
+	MAC    string `json:"mac"`
+	Status string `json:"status"`
+	Error  string `json:"error"`
+}
+
+// WakeAck reports packet delivery results, not whether target PCs are online.
+type WakeAck struct {
+	CommandID    string       `json:"command_id"`
+	Status       string       `json:"status"`
+	Total        int          `json:"total"`
+	SuccessCount int          `json:"success_count"`
+	FailedCount  int          `json:"failed_count"`
+	Results      []WakeResult `json:"results"`
+	Timestamp    int64        `json:"timestamp"`
 }
 
 func main() {
@@ -144,40 +163,67 @@ func main() {
 	log.Println("[Relay] Stopped.")
 }
 
+type wakePCsFunc func(macs []string, retriesPerPC int, delayBetweenPCs time.Duration) map[string]error
+
 // handleWakeCommand processes an incoming wake request.
 func handleWakeCommand(payload []byte, relayCfg RelayConfig, client mqtt.Client, labID string) {
-	var cmd WakeCommand
-	if err := json.Unmarshal(payload, &cmd); err != nil {
+	ackMessage, err := processWakeCommand(payload, relayCfg, wol.WakePCs)
+	if err != nil {
 		log.Printf("[Relay] Failed to parse wake command: %v", err)
 		return
 	}
 
-	log.Printf("[Relay] Wake command received: %d MACs, command_id=%s", len(cmd.MACs), cmd.CommandID)
+	log.Printf("[Relay] Wake complete: %d/%d MACs sent successfully", ackMessage.SuccessCount, ackMessage.Total)
 
-	// Send magic packets with staggered delay
-	delay := time.Duration(relayCfg.DelayBetweenPCMs) * time.Millisecond
-	results := wol.WakePCs(cmd.MACs, relayCfg.RetriesPerPC, delay)
+	ack, err := json.Marshal(ackMessage)
+	if err != nil {
+		log.Printf("[Relay] Failed to marshal wake ack: %v", err)
+		return
+	}
+	topic := fmt.Sprintf("simlab/%s/relay/ack", labID)
+	token := client.Publish(topic, 1, false, ack)
+	token.Wait()
+	if token.Error() != nil {
+		log.Printf("[Relay] Failed to publish wake ACK: %v", token.Error())
+	}
+}
 
-	// Report results
-	successCount := 0
-	for _, err := range results {
-		if err == nil {
-			successCount++
-		}
+func processWakeCommand(payload []byte, relayCfg RelayConfig, wakePCs wakePCsFunc) (WakeAck, error) {
+	var cmd WakeCommand
+	if err := json.Unmarshal(payload, &cmd); err != nil {
+		return WakeAck{}, err
 	}
 
-	log.Printf("[Relay] Wake complete: %d/%d MACs sent successfully", successCount, len(cmd.MACs))
+	if strings.TrimSpace(cmd.CommandID) == "" {
+		return WakeAck{}, fmt.Errorf("command_id is required")
+	}
 
-	// Publish ack
-	ack, _ := json.Marshal(map[string]interface{}{
-		"command_id":    cmd.CommandID,
-		"status":        "executed",
-		"total":         len(cmd.MACs),
-		"success_count": successCount,
-		"timestamp":     time.Now().Unix(),
-	})
-	topic := fmt.Sprintf("simlab/%s/relay/ack", labID)
-	client.Publish(topic, 1, false, ack)
+	log.Printf("[Relay] Wake command received: %d MACs, command_id=%s", len(cmd.MACs), cmd.CommandID)
+
+	delay := time.Duration(relayCfg.DelayBetweenPCMs) * time.Millisecond
+	sendResults := wakePCs(cmd.MACs, relayCfg.RetriesPerPC, delay)
+	ack := WakeAck{
+		CommandID: cmd.CommandID,
+		Status:    "failed",
+		Total:     len(cmd.MACs),
+		Results:   make([]WakeResult, 0, len(cmd.MACs)),
+		Timestamp: time.Now().Unix(),
+	}
+	for _, mac := range cmd.MACs {
+		result := WakeResult{MAC: mac, Status: "executed"}
+		if err := sendResults[mac]; err != nil {
+			result.Status = "failed"
+			result.Error = err.Error()
+			ack.FailedCount++
+		} else {
+			ack.SuccessCount++
+		}
+		ack.Results = append(ack.Results, result)
+	}
+	if ack.Total > 0 && ack.FailedCount == 0 {
+		ack.Status = "executed"
+	}
+	return ack, nil
 }
 
 // publishRelayStatus publishes the relay status (retained).

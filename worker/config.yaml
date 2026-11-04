@@ -3,7 +3,7 @@ mqtt:
   broker_host: "192.168.1.100"
   broker_port: 8883
   username: "simlab-worker"
-  password: "changeme"
+  password: "CHANGE_ME"  # Set locally from a private secret store; never commit credentials.
   use_tls: true
   ca_cert_path: ""
 
@@ -12,7 +12,7 @@ database:
   port: 3306
   name: "simlab"
   username: "simlab"
-  password: "changeme"
+  password: "CHANGE_ME"  # Set locally from a private secret store; never commit credentials.
 
 worker:
   batch_size: 100            # max rows per batch insert
@@ -21,4 +21,4 @@ worker:
 
 laravel:
   base_url: "http://127.0.0.1:8000"
-  api_token: "your-internal-api-token"
+  api_token: "CHANGE_ME"  # Set locally from a private secret store; never commit credentials.

@@ -2,6 +2,9 @@
 package telemetry
 
 import (
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -16,6 +19,7 @@ import (
 
 // Data holds a snapshot of system telemetry.
 type Data struct {
+	SampleID      string  `json:"sample_id"`
 	CPUPercent    float64 `json:"cpu_percent"`
 	RAMPercent    float64 `json:"ram_percent"`
 	DiskPercent   float64 `json:"disk_percent"`
@@ -31,6 +35,7 @@ type Data struct {
 // Collect gathers current system metrics and returns a Data snapshot.
 func Collect(agentVersion string) Data {
 	data := Data{
+		SampleID:     newSampleID(),
 		AgentVersion: agentVersion,
 		OS:           runtime.GOOS,
 		Timestamp:    time.Now().Unix(),
@@ -85,6 +90,15 @@ func Collect(agentVersion string) Data {
 	data.MACAddress = getPrimaryMAC()
 
 	return data
+}
+
+// newSampleID returns a random identifier that remains stable for one Data snapshot.
+func newSampleID() string {
+	id := make([]byte, 16)
+	if _, err := rand.Read(id); err != nil {
+		return fmt.Sprintf("%d", time.Now().UnixNano())
+	}
+	return hex.EncodeToString(id)
 }
 
 // getPrimaryIP returns the primary non-loopback IP address.

@@ -7,13 +7,14 @@ agent:
 # Jalur Online Cloud (Internet / Cloudflare Tunnel)
 server:
   url: "https://simlab.labmuma.xyz"
+  token: "CHANGE_ME"  # Set locally from a private secret store; never commit credentials.
 
 # Jalur MQTT (Direct LAN Lokal)
 mqtt:
   broker_host: "192.168.1.2"
   broker_port: 1883
   username: "agent-lab1-pc01"
-  password: "changeme"
+  password: "CHANGE_ME"  # Set locally from a private secret store; never commit credentials.
   use_tls: false
   ca_cert_path: ""
   keep_alive: 10

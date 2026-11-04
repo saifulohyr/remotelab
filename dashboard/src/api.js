@@ -1,6 +1,9 @@
-// SIMLab API Client with Auth, Error handling & Mock Fallback
+// SIMLab API Client with Auth and explicit development-only demo mode.
+
+import { assertCommandAccepted } from './commands';
 
 const BASE_URL = '/api';
+export const DEMO_MODE = import.meta.env.DEV && import.meta.env.VITE_DEMO_MODE === 'true';
 
 export const getStoredToken = () => localStorage.getItem('simlab_token');
 export const setStoredToken = (token) => {
@@ -20,6 +23,18 @@ export const setStoredUser = (user) => {
   if (user) localStorage.setItem('simlab_user', JSON.stringify(user));
   else localStorage.removeItem('simlab_user');
 };
+
+export const isValidUser = (user) =>
+  Boolean(
+    user &&
+    typeof user === 'object' &&
+    (typeof user.id === 'number' || typeof user.id === 'string') &&
+    typeof user.email === 'string' &&
+    user.email.trim()
+  );
+
+export const hasValidSession = () =>
+  Boolean(getStoredToken() && isValidUser(getStoredUser()));
 
 // Generic request helper
 async function request(endpoint, options = {}) {
@@ -49,52 +64,47 @@ async function request(endpoint, options = {}) {
     }
     return data;
   } catch (err) {
-    // If backend is unreachable or returns error, use mock fallback if mock is enabled
-    if (shouldUseMock(err)) {
+    // Demo data is never used in production or without an explicit opt-in.
+    if (DEMO_MODE && endpoint !== '/login') {
       return getMockData(endpoint, options);
     }
     throw err;
   }
 }
 
-function shouldUseMock(err) {
-  return (
-    err.message?.includes('Failed to fetch') ||
-    err.message?.includes('NetworkError') ||
-    err.message?.includes('404') ||
-    !getStoredToken() // When using offline demo mode
-  );
-}
-
 // ── API Methods ───────────────────────────────────────────
 export const api = {
   // Auth
   login: async (email, password) => {
+    setStoredToken(null);
+    setStoredUser(null);
+
+    let res;
     try {
-      const res = await request('/login', {
+      res = await request('/login', {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       });
-      if (res.token) {
-        setStoredToken(res.token);
-        setStoredUser(res.user);
-      }
-      return res;
     } catch (err) {
-      if (shouldUseMock(err)) {
-        const mockUser = {
+      if (!DEMO_MODE) throw err;
+      res = {
+        user: {
           id: 1,
           name: email.includes('admin') ? 'Super Administrator' : 'Operator Lab',
           email,
           role: email.includes('admin') ? 'superadmin' : 'operator',
-        };
-        const mockToken = 'mock-simlab-token-12345';
-        setStoredToken(mockToken);
-        setStoredUser(mockUser);
-        return { user: mockUser, token: mockToken };
-      }
-      throw err;
+        },
+        token: 'demo-simlab-token',
+      };
     }
+
+    if (typeof res?.token !== 'string' || !res.token.trim() || !isValidUser(res.user)) {
+      throw new Error('Respons login tidak valid: token dan data pengguna wajib tersedia.');
+    }
+
+    setStoredToken(res.token);
+    setStoredUser(res.user);
+    return res;
   },
 
   logout: async () => {
@@ -119,16 +129,38 @@ export const api = {
   getPc: (id) => request(`/pcs/${id}`),
   getPcMetrics: (id, range = '24h') => request(`/pcs/${id}/metrics?range=${range}`),
   getPcEvents: (id) => request(`/pcs/${id}/events`),
+  deletePc: (id) => request(`/pcs/${id}`, { method: 'DELETE' }),
 
   // Commands
-  getCommands: () => request('/commands'),
+  getCommands: (page = 1) => request(`/commands?page=${page}`),
   getCommand: (id) => request(`/commands/${id}`),
-  dispatchCommand: (payload) =>
-    request('/commands', {
+  dispatchCommand: async (payload) => {
+    const response = await request('/commands', {
       method: 'POST',
       body: JSON.stringify(payload),
-    }),
-  exportCommandsUrl: () => `${BASE_URL}/commands/export`,
+    });
+    return assertCommandAccepted(response);
+  },
+  exportCommands: async () => {
+    const token = getStoredToken();
+    const res = await fetch(`${BASE_URL}/commands/export`, {
+      headers: {
+        Accept: 'text/csv',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (res.status === 401) {
+      setStoredToken(null);
+      setStoredUser(null);
+      window.dispatchEvent(new CustomEvent('simlab:unauthorized'));
+    }
+    if (!res.ok) {
+      const data = await res.json().catch(() => null);
+      throw new Error(data?.message || `Ekspor CSV gagal dengan status ${res.status}`);
+    }
+    return res.blob();
+  },
 
   // Schedules
   getSchedules: (labId) => request(`/labs/${labId}/schedules`),
@@ -146,6 +178,8 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(payload),
     }),
+  deleteScheduleException: (labId, exceptionId) =>
+    request(`/labs/${labId}/schedule-exceptions/${exceptionId}`, { method: 'DELETE' }),
 
   // Notifications
   getNotifications: (unreadOnly = false) =>
@@ -295,13 +329,13 @@ function getMockData(endpoint, options) {
   if (endpoint.includes('/schedule-exceptions')) {
     return {
       data: [
-        { id: 1, exception_date: '2026-11-10', reason: 'Hari Pahlawan (Libur Nasional)', is_cancelled: true },
+        { id: 1, exception_date: '2026-11-10', reason: 'Hari Pahlawan (Libur Nasional)', type: 'skip' },
       ],
     };
   }
 
   if (endpoint.includes('/notifications/unread-count')) {
-    return { unread_count: 3 };
+    return { count: 3 };
   }
 
   if (endpoint.includes('/notifications')) {

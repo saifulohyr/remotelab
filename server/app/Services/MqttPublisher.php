@@ -2,68 +2,81 @@
 
 namespace App\Services;
 
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Symfony\Component\Process\Process;
 
-/**
- * Service for publishing MQTT messages from Laravel via the Mosquitto REST API
- * or a lightweight PHP MQTT client.
- *
- * For simplicity, this implementation uses mosquitto_pub via shell command.
- * In production, consider using php-mqtt/client or a dedicated MQTT bridge.
- */
 class MqttPublisher
 {
     /**
-     * Publish a message to an MQTT topic.
+     * Publish a message without exposing credentials through a shell command.
      */
-    public static function publish(string $topic, array|string $payload, int $qos = 1, bool $retain = false): bool
+    public function publish(string $topic, array|string $payload, int $qos = 1, bool $retain = false): bool
     {
         if (is_array($payload)) {
-            $payload = json_encode($payload);
+            $payload = json_encode($payload, JSON_THROW_ON_ERROR);
         }
 
-        $host = config('services.mqtt.host', '127.0.0.1');
-        $port = config('services.mqtt.port', 1883);
-        $username = config('services.mqtt.username', '');
-        $password = config('services.mqtt.password', '');
+        $useTls = (bool) config('services.mqtt.use_tls', false);
+        $port = $useTls
+            ? config('services.mqtt.tls_port', 8883)
+            : config('services.mqtt.port', 1883);
 
-        // Build mosquitto_pub command
-        $cmd = sprintf(
-            'mosquitto_pub -h %s -p %d -t %s -m %s -q %d',
-            escapeshellarg($host),
-            $port,
-            escapeshellarg($topic),
-            escapeshellarg($payload),
-            $qos
-        );
+        $command = [
+            config('services.mqtt.binary', 'mosquitto_pub'),
+            '-h', config('services.mqtt.host', '127.0.0.1'),
+            '-p', (string) $port,
+            '-t', $topic,
+            '-m', $payload,
+            '-q', (string) $qos,
+        ];
 
         if ($retain) {
-            $cmd .= ' -r';
+            $command[] = '-r';
         }
 
+        $username = config('services.mqtt.username', '');
         if ($username) {
-            $cmd .= sprintf(' -u %s -P %s', escapeshellarg($username), escapeshellarg($password));
+            $command[] = '-u';
+            $command[] = $username;
+            $command[] = '-P';
+            $command[] = config('services.mqtt.password', '');
         }
 
-        // Check if TLS is enabled
-        if (config('services.mqtt.use_tls', false)) {
-            $cmd .= sprintf(' --cafile %s', escapeshellarg(config('services.mqtt.ca_cert_path', '')));
-            $port = config('services.mqtt.tls_port', 8883);
+        if ($useTls) {
+            $caFile = config('services.mqtt.ca_cert_path', '');
+            if (! $caFile) {
+                Log::error('[MqttPublisher] TLS requires a CA certificate.');
+
+                return false;
+            }
+            $command[] = '--cafile';
+            $command[] = $caFile;
         }
 
-        $cmd .= ' 2>&1';
+        try {
+            $exitCode = $this->runProcess($command);
+        } catch (\Throwable $e) {
+            Log::error("[MqttPublisher] Failed to publish to {$topic}: {$e->getMessage()}");
 
-        $output = [];
-        $exitCode = 0;
-        exec($cmd, $output, $exitCode);
+            return false;
+        }
 
         if ($exitCode !== 0) {
-            Log::error("[MqttPublisher] Failed to publish to {$topic}: " . implode("\n", $output));
+            Log::error("[MqttPublisher] Broker rejected publish to {$topic} (exit {$exitCode}).");
+
             return false;
         }
 
         Log::debug("[MqttPublisher] Published to {$topic}");
+
         return true;
+    }
+
+    protected function runProcess(array $command): int
+    {
+        $process = new Process($command);
+        $process->setTimeout(10)->run();
+
+        return $process->getExitCode() ?? 1;
     }
 }

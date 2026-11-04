@@ -9,4 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 // SIMLab automated power scheduler checker — runs every minute
-Schedule::command('simlab:check-schedules')->everyMinute();
+Schedule::command('simlab:check-schedules')->everyMinute()->withoutOverlapping();

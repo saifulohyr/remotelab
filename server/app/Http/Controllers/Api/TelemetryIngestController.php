@@ -11,24 +11,29 @@ use App\Models\Pc;
 use App\Models\PowerEvent;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 class TelemetryIngestController extends Controller
 {
     /**
-     * Ingest telemetry from agent and return any pending commands for this PC.
+     * Ingest telemetry from an authenticated agent and return pending commands.
      */
     public function ingest(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'lab_id' => 'required|string',
-            'pc_id' => 'required|string',
-            'hostname' => 'nullable|string',
-            'status' => 'nullable|string',
-            'version' => 'nullable|string',
-            'ip_address' => 'nullable|string',
-            'mac_address' => 'nullable|string',
-            'uptime' => 'nullable|integer',
+            'lab_id' => 'required|string|max:100',
+            'pc_id' => 'required|string|max:100',
+            'sample_id' => 'nullable|string|max:64',
+            'timestamp' => 'nullable|integer',
+            'hostname' => 'nullable|string|max:255',
+            'status' => 'nullable|string|max:50',
+            'version' => 'nullable|string|max:50',
+            'agent_version' => 'nullable|string|max:50',
+            'ip_address' => 'nullable|ip',
+            'mac_address' => 'nullable|string|max:32',
+            'uptime' => 'nullable|integer|min:0',
+            'uptime_seconds' => 'nullable|integer|min:0',
             'metrics' => 'nullable|array',
             'metrics.cpu_percent' => 'nullable|numeric',
             'metrics.ram_percent' => 'nullable|numeric',
@@ -42,69 +47,36 @@ class TelemetryIngestController extends Controller
             'metrics.network_tx_bytes' => 'nullable|numeric',
         ]);
 
-        $labSlug = Str::slug($validated['lab_id']);
+        $lab = Lab::where('slug', Str::slug($validated['lab_id']))->first();
+        if (! $lab) {
+            return response()->json(['message' => 'Lab tidak dikenal.'], 404);
+        }
+
         $pcSlug = Str::slug($validated['pc_id']);
         $hostname = $validated['hostname'] ?? strtoupper($validated['pc_id']);
-
-        // Find or fallback lab
-        $lab = Lab::where('slug', $labSlug)
-            ->orWhere('name', 'like', "%{$validated['lab_id']}%")
+        $pc = Pc::where('lab_id', $lab->id)
+            ->where(function ($query) use ($pcSlug, $hostname) {
+                $query->where('slug', $pcSlug)->orWhere('hostname', $hostname);
+            })
             ->first();
 
-        if (!$lab) {
-            $lab = Lab::first();
+        if (! $pc) {
+            return response()->json(['message' => 'PC tidak dikenal di lab ini.'], 404);
         }
 
-        $rawPcId = strtolower(trim($validated['pc_id']));
-        $isTeacherIngest = ($rawPcId === 'komguru' || str_contains($rawPcId, 'guru') || str_contains(strtoupper($hostname), 'GURU'));
+        $oldStatus = $pc->status;
+        $newStatus = $validated['status'] ?? 'online';
+        $recordedAt = isset($validated['timestamp'])
+            ? Carbon::createFromTimestampUTC($validated['timestamp'])
+            : now();
 
-        // Find or auto-create PC
-        if ($isTeacherIngest) {
-            $pc = Pc::where('lab_id', $lab ? $lab->id : 1)
-                ->where(function ($q) use ($pcSlug, $hostname) {
-                    $q->where('hostname', 'like', '%KOMGURU%')
-                      ->orWhere('slug', 'like', '%komguru%')
-                      ->orWhere('slug', $pcSlug)
-                      ->orWhere('hostname', $hostname);
-                })->first();
-        } else {
-            $pc = Pc::where(function ($query) use ($pcSlug, $hostname, $lab) {
-                $query->where('lab_id', $lab ? $lab->id : 1)
-                      ->where(function ($q) use ($pcSlug, $hostname) {
-                          $q->where('slug', $pcSlug)
-                            ->orWhere('hostname', $hostname);
-                      });
-            })->first();
-        }
-
-        if (!$pc) {
-            $mac = !empty($validated['mac_address']) ? $validated['mac_address'] : sprintf('02:00:00:%02x:%02x:%02x', $lab ? $lab->id : 1, rand(1, 250), rand(1, 250));
-            $pc = Pc::create([
-                'lab_id' => $lab ? $lab->id : 1,
-                'hostname' => $hostname,
-                'slug' => $pcSlug,
-                'mac_address' => $mac,
-                'status' => 'online',
-                'ip_address' => $validated['ip_address'] ?? $request->ip(),
-                'agent_version' => $validated['version'] ?? '1.0.0',
-                'last_seen_at' => now(),
-            ]);
-            PowerEvent::create([
-                'pc_id' => $pc->id,
-                'event_type' => 'boot',
-                'source' => 'agent',
-                'created_at' => now(),
-            ]);
-        } else {
-            $oldStatus = $pc->status;
-            $newStatus = $validated['status'] ?? 'online';
-
+        if ($pc->last_seen_at === null || $recordedAt->greaterThanOrEqualTo($pc->last_seen_at)) {
             $pc->update([
                 'status' => $newStatus,
-                'ip_address' => $validated['ip_address'] ?? $request->ip(),
-                'mac_address' => !empty($validated['mac_address']) ? $validated['mac_address'] : $pc->mac_address,
-                'agent_version' => $validated['version'] ?? $pc->agent_version,
-                'last_seen_at' => now(),
+                'ip_address' => $validated['ip_address'] ?? $pc->ip_address,
+                'mac_address' => ! empty($validated['mac_address']) ? $validated['mac_address'] : $pc->mac_address,
+                'agent_version' => $validated['agent_version'] ?? $validated['version'] ?? $pc->agent_version,
+                'last_seen_at' => $recordedAt,
             ]);
 
             if ($oldStatus !== 'online' && $newStatus === 'online') {
@@ -112,34 +84,40 @@ class TelemetryIngestController extends Controller
                     'pc_id' => $pc->id,
                     'event_type' => 'boot',
                     'source' => 'agent',
-                    'created_at' => now(),
+                    'created_at' => $recordedAt,
                 ]);
             }
         }
 
-        // Save metrics if present
-        if (!empty($validated['metrics'])) {
+        if (! empty($validated['metrics'])) {
             $m = $validated['metrics'];
             $cpuPct = $m['cpu_percent'] ?? $m['cpu_usage_pct'] ?? 0;
             $ramPct = $m['ram_percent'] ?? 0;
-            if ($ramPct == 0 && !empty($m['ram_total_bytes']) && $m['ram_total_bytes'] > 0) {
+            if ($ramPct == 0 && ! empty($m['ram_total_bytes']) && $m['ram_total_bytes'] > 0) {
                 $ramPct = round(($m['ram_used_bytes'] / $m['ram_total_bytes']) * 100, 2);
             }
             $diskPct = $m['disk_percent'] ?? 0;
-            if ($diskPct == 0 && !empty($m['disk_total_bytes']) && $m['disk_total_bytes'] > 0) {
+            if ($diskPct == 0 && ! empty($m['disk_total_bytes']) && $m['disk_total_bytes'] > 0) {
                 $diskPct = round(($m['disk_used_bytes'] / $m['disk_total_bytes']) * 100, 2);
             }
-            Metric::create([
+
+            $metric = [
                 'pc_id' => $pc->id,
+                'sample_id' => $validated['sample_id'] ?? null,
                 'cpu_percent' => $cpuPct,
                 'ram_percent' => $ramPct,
                 'disk_percent' => $diskPct,
-                'uptime_seconds' => $validated['uptime'] ?? 0,
-                'recorded_at' => now(),
-            ]);
+                'uptime_seconds' => $validated['uptime_seconds'] ?? $validated['uptime'] ?? 0,
+                'recorded_at' => $recordedAt,
+            ];
+
+            if ($metric['sample_id']) {
+                Metric::insertOrIgnore([$metric]);
+            } else {
+                Metric::create($metric);
+            }
         }
 
-        // Fetch pending commands for this PC
         $pendingResults = CommandResult::with('commandLog')
             ->where('pc_id', $pc->id)
             ->where('status', 'pending')
@@ -148,17 +126,16 @@ class TelemetryIngestController extends Controller
         $commandsToSend = [];
         foreach ($pendingResults as $res) {
             $log = $res->commandLog;
-            if (!$log) {
+            if (! $log) {
                 continue;
             }
 
-            // Check TTL
-            $isExpired = $log->issued_at->addSeconds($log->ttl_seconds)->isPast();
-            if ($isExpired) {
+            if ($log->issued_at->copy()->addSeconds($log->ttl_seconds)->isPast()) {
                 $res->update([
                     'status' => 'rejected_expired',
                     'error_message' => 'Command expired before execution',
                 ]);
+
                 continue;
             }
 
@@ -170,10 +147,7 @@ class TelemetryIngestController extends Controller
                 'ttl_seconds' => $log->ttl_seconds,
             ];
 
-            $res->update([
-                'status' => 'delivered',
-                'delivered_at' => now(),
-            ]);
+            $res->update(['status' => 'delivered', 'delivered_at' => now()]);
         }
 
         return response()->json([
@@ -187,55 +161,73 @@ class TelemetryIngestController extends Controller
     }
 
     /**
-     * Receive command acknowledgment from agent (HTTP fallback).
+     * Receive a command acknowledgment from an authenticated agent.
      */
     public function ack(Request $request): JsonResponse
     {
         $validated = $request->validate([
             'command_id' => 'required|string',
-            'pc_id' => 'nullable',
-            'hostname' => 'nullable|string',
+            // New agents send the numeric database ID; agents installed before
+            // the token rollout send their hostname or slug.
+            'pc_id' => 'required|max:100',
+            'hostname' => 'nullable|string|max:255',
             'status' => 'required|string|in:delivered,executed,failed,rejected_expired,rejected_duplicate,rejected_unknown,timeout',
-            'message' => 'nullable|string',
-            'output' => 'nullable|string',
+            'message' => 'nullable|string|max:10000',
+            'output' => 'nullable|string|max:100000',
             'exit_code' => 'nullable|integer',
         ]);
 
         $log = CommandLog::where('command_id', $validated['command_id'])->first();
-        if (!$log) {
+        if (! $log) {
             return response()->json(['message' => 'Command log not found'], 404);
+        }
+
+        if (! is_scalar($validated['pc_id'])) {
+            return response()->json(['message' => 'PC tidak dikenal.'], 404);
         }
 
         $query = CommandResult::where('command_log_id', $log->id);
 
-        if (!empty($validated['pc_id']) && is_numeric($validated['pc_id'])) {
+        if (is_numeric($validated['pc_id'])) {
             $query->where('pc_id', (int) $validated['pc_id']);
-        } elseif (!empty($validated['hostname'])) {
-            $pc = Pc::where('hostname', $validated['hostname'])->first();
-            if ($pc) {
-                $query->where('pc_id', $pc->id);
-            }
-        } elseif (!empty($validated['pc_id'])) {
-            $rawPc = strtolower(trim((string) $validated['pc_id']));
-            if ($rawPc === 'komguru' || str_contains($rawPc, 'guru')) {
+        } else {
+            $identity = $validated['hostname'] ?? (string) $validated['pc_id'];
+            $pc = Pc::where('hostname', $identity)
+                ->orWhere('slug', Str::slug($identity))
+                ->first();
+
+            // Legacy teacher agents identify themselves as "komguru".
+            if (! $pc && str_contains(strtolower($identity), 'guru')) {
                 $pc = Pc::where('hostname', 'like', '%KOMGURU%')->first();
-                if ($pc) {
-                    $query->where('pc_id', $pc->id);
-                }
             }
+
+            if (! $pc) {
+                return response()->json(['message' => 'PC tidak dikenal.'], 404);
+            }
+
+            $query->where('pc_id', $pc->id);
         }
 
         $result = $query->first();
-        if ($result) {
-            $outputMsg = $validated['output'] ?? $validated['message'] ?? null;
-            $result->update([
-                'status' => $validated['status'],
-                'output' => $outputMsg,
-                'error_message' => ($validated['status'] === 'failed' || !empty($validated['exit_code']) && $validated['exit_code'] !== 0) ? ($validated['message'] ?: $outputMsg) : null,
-                'executed_at' => now(),
-            ]);
+
+        if (! $result) {
+            return response()->json(['message' => 'Command result tidak cocok dengan PC.'], 404);
         }
 
-        return response()->json(['status' => 'ok', 'updated' => (bool) $result]);
+        if (in_array($result->status, ['executed', 'failed', 'rejected_expired', 'rejected_duplicate', 'rejected_unknown', 'timeout'], true)) {
+            return response()->json(['status' => 'ok', 'updated' => false]);
+        }
+
+        $status = $validated['status'];
+        $isTerminal = $status !== 'delivered';
+        $result->update([
+            'status' => $status,
+            'output' => $validated['output'] ?? null,
+            'error_message' => $validated['message'] ?? null,
+            'delivered_at' => $status === 'delivered' ? now() : $result->delivered_at,
+            'executed_at' => $isTerminal ? now() : null,
+        ]);
+
+        return response()->json(['status' => 'ok', 'updated' => true]);
     }
 }

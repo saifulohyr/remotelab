@@ -3,9 +3,11 @@
 package command
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"log"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -33,12 +35,67 @@ type Command struct {
 	TTLSeconds int                    `json:"ttl_seconds"`
 }
 
+// UnmarshalJSON accepts both Unix integer and RFC3339 issued_at values.
+func (c *Command) UnmarshalJSON(data []byte) error {
+	var raw struct {
+		CommandID  string                 `json:"command_id"`
+		Action     string                 `json:"action"`
+		Params     map[string]interface{} `json:"params,omitempty"`
+		IssuedAt   json.RawMessage        `json:"issued_at"`
+		TTLSeconds int                    `json:"ttl_seconds"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return err
+	}
+
+	issuedAt, err := parseIssuedAt(raw.IssuedAt)
+	if err != nil {
+		return err
+	}
+	*c = Command{
+		CommandID:  raw.CommandID,
+		Action:     raw.Action,
+		Params:     raw.Params,
+		IssuedAt:   issuedAt,
+		TTLSeconds: raw.TTLSeconds,
+	}
+	return nil
+}
+
+func parseIssuedAt(raw json.RawMessage) (int64, error) {
+	raw = bytes.TrimSpace(raw)
+	if len(raw) == 0 || bytes.Equal(raw, []byte("null")) {
+		return 0, nil
+	}
+	if raw[0] != '"' {
+		issuedAt, err := strconv.ParseInt(string(raw), 10, 64)
+		if err != nil {
+			return 0, fmt.Errorf("issued_at must be a Unix integer or RFC3339 timestamp")
+		}
+		return issuedAt, nil
+	}
+
+	var value string
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return 0, fmt.Errorf("invalid issued_at: %w", err)
+	}
+	if issuedAt, err := strconv.ParseInt(value, 10, 64); err == nil {
+		return issuedAt, nil
+	}
+	issuedAt, err := time.Parse(time.RFC3339Nano, value)
+	if err != nil {
+		return 0, fmt.Errorf("issued_at must be a Unix integer or RFC3339 timestamp")
+	}
+	return issuedAt.Unix(), nil
+}
+
 // AckPayload represents the acknowledgment sent back to the server.
 type AckPayload struct {
 	CommandID string `json:"command_id"`
-	Status    string `json:"status"` // delivered, executed, failed, rejected_expired, rejected_duplicate, rejected_unknown
+	Status    string `json:"status"` // delivered, executed, failed, rejected_expired, rejected_invalid, rejected_unknown
 	Message   string `json:"message,omitempty"`
 	Output    string `json:"output,omitempty"`
+	ExitCode  int    `json:"exit_code"`
 	Timestamp int64  `json:"timestamp"`
 }
 
@@ -52,20 +109,28 @@ type Executor interface {
 	RunScript(script, shell string) (string, error)
 }
 
+type commandRecord struct {
+	seenAt time.Time
+	ready  chan struct{}
+	ack    AckPayload
+}
+
 // Handler processes incoming commands with validation and deduplication.
 type Handler struct {
 	executor     Executor
-	seenCommands map[string]time.Time
+	seenCommands map[string]*commandRecord
 	mu           sync.Mutex
 	publishAck   func(ack AckPayload)
+	now          func() time.Time
 }
 
 // NewHandler creates a new command handler.
 func NewHandler(executor Executor, publishAck func(ack AckPayload)) *Handler {
 	h := &Handler{
 		executor:     executor,
-		seenCommands: make(map[string]time.Time),
+		seenCommands: make(map[string]*commandRecord),
 		publishAck:   publishAck,
+		now:          time.Now,
 	}
 
 	// Start cleanup goroutine to remove old command IDs
@@ -92,19 +157,60 @@ func (h *Handler) Handle(payload []byte) {
 func (h *Handler) ExecuteDirect(cmd Command) AckPayload {
 	log.Printf("[Command] Received: action=%s command_id=%s", cmd.Action, cmd.CommandID)
 
-	// Validate action is in whitelist
+	if strings.TrimSpace(cmd.CommandID) == "" {
+		return h.invalidAck(cmd.CommandID, "command_id is required")
+	}
+	if cmd.IssuedAt <= 0 {
+		return h.invalidAck(cmd.CommandID, "issued_at must be greater than zero")
+	}
+	if cmd.TTLSeconds <= 0 {
+		return h.invalidAck(cmd.CommandID, "ttl_seconds must be greater than zero")
+	}
+	if cmd.IssuedAt > h.now().Add(30*time.Second).Unix() {
+		return h.invalidAck(cmd.CommandID, "issued_at is too far in the future")
+	}
 	if !AllowedActions[cmd.Action] {
 		log.Printf("[Command] Rejected unknown action: %s", cmd.Action)
 		return AckPayload{
 			CommandID: cmd.CommandID,
 			Status:    "rejected_unknown",
 			Message:   fmt.Sprintf("unknown action: %s", cmd.Action),
-			Timestamp: time.Now().Unix(),
+			Timestamp: h.now().Unix(),
 		}
 	}
 
-	// Check TTL expiry (with ±30 second clock drift tolerance)
-	now := time.Now().Unix()
+	// Claim the command ID before execution. Concurrent duplicates wait for and
+	// replay the original result instead of executing or changing its status.
+	h.mu.Lock()
+	if record, seen := h.seenCommands[cmd.CommandID]; seen {
+		h.mu.Unlock()
+		<-record.ready
+		log.Printf("[Command] Replaying acknowledgment: command_id=%s status=%s", cmd.CommandID, record.ack.Status)
+		return record.ack
+	}
+	record := &commandRecord{seenAt: h.now(), ready: make(chan struct{})}
+	h.seenCommands[cmd.CommandID] = record
+	h.mu.Unlock()
+
+	ack := h.executeValidated(cmd)
+	record.ack = ack
+	close(record.ready)
+	return ack
+}
+
+func (h *Handler) invalidAck(commandID, message string) AckPayload {
+	log.Printf("[Command] Rejected invalid command: command_id=%s reason=%s", commandID, message)
+	return AckPayload{
+		CommandID: commandID,
+		Status:    "rejected_unknown",
+		Message:   message,
+		Timestamp: h.now().Unix(),
+	}
+}
+
+func (h *Handler) executeValidated(cmd Command) AckPayload {
+	// Check TTL expiry (with ±30 second clock drift tolerance).
+	now := h.now().Unix()
 	expiresAt := cmd.IssuedAt + int64(cmd.TTLSeconds)
 	if cmd.TTLSeconds > 0 && now > expiresAt+30 {
 		log.Printf("[Command] Rejected expired command: command_id=%s issued_at=%d ttl=%d now=%d",
@@ -113,26 +219,10 @@ func (h *Handler) ExecuteDirect(cmd Command) AckPayload {
 			CommandID: cmd.CommandID,
 			Status:    "rejected_expired",
 			Message:   "command expired",
-			Timestamp: time.Now().Unix(),
+			Timestamp: h.now().Unix(),
 		}
 	}
 
-	// Check replay protection
-	h.mu.Lock()
-	if _, seen := h.seenCommands[cmd.CommandID]; seen {
-		h.mu.Unlock()
-		log.Printf("[Command] Rejected duplicate command: command_id=%s", cmd.CommandID)
-		return AckPayload{
-			CommandID: cmd.CommandID,
-			Status:    "rejected_duplicate",
-			Message:   "duplicate command_id",
-			Timestamp: time.Now().Unix(),
-		}
-	}
-	h.seenCommands[cmd.CommandID] = time.Now()
-	h.mu.Unlock()
-
-	// Execute the command
 	output, err := h.execute(cmd)
 	if err != nil {
 		log.Printf("[Command] Execution failed: action=%s error=%v", cmd.Action, err)
@@ -141,7 +231,8 @@ func (h *Handler) ExecuteDirect(cmd Command) AckPayload {
 			Status:    "failed",
 			Message:   err.Error(),
 			Output:    output,
-			Timestamp: time.Now().Unix(),
+			ExitCode:  1,
+			Timestamp: h.now().Unix(),
 		}
 	}
 
@@ -150,7 +241,7 @@ func (h *Handler) ExecuteDirect(cmd Command) AckPayload {
 		CommandID: cmd.CommandID,
 		Status:    "executed",
 		Output:    output,
-		Timestamp: time.Now().Unix(),
+		Timestamp: h.now().Unix(),
 	}
 }
 
@@ -249,9 +340,9 @@ func (h *Handler) cleanupLoop() {
 
 	for range ticker.C {
 		h.mu.Lock()
-		cutoff := time.Now().Add(-10 * time.Minute)
-		for id, seen := range h.seenCommands {
-			if seen.Before(cutoff) {
+		cutoff := h.now().Add(-2 * time.Hour)
+		for id, record := range h.seenCommands {
+			if record.seenAt.Before(cutoff) {
 				delete(h.seenCommands, id)
 			}
 		}

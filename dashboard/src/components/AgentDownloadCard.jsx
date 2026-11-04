@@ -67,7 +67,7 @@ export default function AgentDownloadCard() {
         </div>
         <div className="flex items-start gap-2 bg-slate-50/70 p-2.5 rounded-xl border border-slate-100">
           <span className="w-4 h-4 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center shrink-0 text-[10px]">2</span>
-          <span>Sesuaikan <code className="text-slate-800 font-mono bg-white px-1 rounded">pc_id</code> & <code className="text-slate-800 font-mono bg-white px-1 rounded">lab_id</code> pada config.yaml.</span>
+          <span>Isi <code className="text-slate-800 font-mono bg-white px-1 rounded">pc_id</code>, <code className="text-slate-800 font-mono bg-white px-1 rounded">lab_id</code>, dan kredensial MQTT per-PC dari admin pada config.yaml. Jangan gunakan password bersama.</span>
         </div>
         <div className="flex items-start gap-2 bg-slate-50/70 p-2.5 rounded-xl border border-slate-100">
           <span className="w-4 h-4 rounded-full bg-emerald-100 text-emerald-700 font-bold flex items-center justify-center shrink-0 text-[10px]">3</span>

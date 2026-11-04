@@ -9,14 +9,19 @@ import {
   Terminal,
   Lock,
   RotateCw,
-  Power
+  Power,
+  Trash2,
+  AlertTriangle
 } from 'lucide-react';
 import { api } from '../api';
 
-export default function PcDetailModal({ pcId, onClose, onDispatchSingleCommand }) {
+export default function PcDetailModal({ pcId, onClose, onDispatchSingleCommand, onDeletePc }) {
   const [pc, setPc] = useState(null);
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState(null);
 
   useEffect(() => {
     if (!pcId) return;
@@ -36,11 +41,31 @@ export default function PcDetailModal({ pcId, onClose, onDispatchSingleCommand }
     return () => { isMounted = false; };
   }, [pcId]);
 
+  useEffect(() => {
+    setConfirmingDelete(false);
+    setDeleting(false);
+    setDeleteError(null);
+  }, [pcId]);
+
   if (!pcId) return null;
 
   const cpuVal = pc?.latest_metrics?.cpu_percent != null ? `${pc.latest_metrics.cpu_percent}%` : '-';
   const ramVal = pc?.latest_metrics?.ram_percent != null ? `${pc.latest_metrics.ram_percent}%` : '-';
   const diskVal = pc?.latest_metrics?.disk_percent != null ? `${pc.latest_metrics.disk_percent}%` : '-';
+  const lastSeenVal = pc?.last_seen_at ? new Date(pc.last_seen_at).toLocaleString('id-ID') : '-';
+
+  const handleDelete = async () => {
+    if (!pc?.id) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await onDeletePc(pc.id);
+    } catch (err) {
+      setDeleteError(err.message || 'Gagal menghapus PC.');
+      setDeleting(false);
+      setConfirmingDelete(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 bg-zinc-950/40 backdrop-blur-xs flex items-center justify-center p-4 z-50 font-sans">
@@ -113,8 +138,12 @@ export default function PcDetailModal({ pcId, onClose, onDispatchSingleCommand }
               <div className="flex justify-between py-1 border-b border-zinc-200/60">
                 <span className="text-zinc-500">Uptime Sistem</span>
                 <span className="font-mono text-zinc-900">
-                  {pc?.uptime_seconds ? `${Math.floor(pc.uptime_seconds / 3600)}j ${Math.floor((pc.uptime_seconds % 3600) / 60)}m` : '-'}
+                  {pc?.latest_metrics?.uptime_seconds ? `${Math.floor(pc.latest_metrics.uptime_seconds / 3600)}j ${Math.floor((pc.latest_metrics.uptime_seconds % 3600) / 60)}m` : '-'}
                 </span>
+              </div>
+              <div className="flex justify-between py-1 border-b border-zinc-200/60">
+                <span className="text-zinc-500">Terakhir Terlihat</span>
+                <span className="font-mono text-zinc-900">{lastSeenVal}</span>
               </div>
               <div className="flex justify-between py-1">
                 <span className="text-zinc-500">Pengguna Login</span>
@@ -143,8 +172,53 @@ export default function PcDetailModal({ pcId, onClose, onDispatchSingleCommand }
               </div>
             </div>
 
+            {/* Decommission confirmation */}
+            {confirmingDelete && (
+              <div className="rounded-lg border border-rose-200 bg-rose-50 p-3.5 space-y-3">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+                  <p className="text-xs text-rose-800 leading-relaxed">
+                    Hapus permanen <strong>{pc?.hostname || `PC #${pcId}`}</strong>? Riwayat metrik,
+                    event, dan target perintah PC ini ikut terhapus. Gunakan aksi ini hanya untuk
+                    PC yang sudah di-uninstall atau tidak dipakai lagi.
+                  </p>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button
+                    onClick={() => setConfirmingDelete(false)}
+                    disabled={deleting}
+                    className="px-3 py-1.5 rounded-lg border border-zinc-200 bg-white text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>{deleting ? 'Menghapus...' : 'Ya, hapus permanen'}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {deleteError && (
+              <p role="alert" className="text-xs font-medium text-rose-700 bg-rose-50 border border-rose-200 rounded-lg p-2.5">
+                {deleteError}
+              </p>
+            )}
+
             {/* Single PC Action Bar */}
-            <div className="pt-2 flex justify-end gap-2 border-t border-zinc-100">
+            <div className="pt-2 flex flex-wrap justify-end gap-2 border-t border-zinc-100">
+              <button
+                onClick={() => setConfirmingDelete(true)}
+                disabled={!onDeletePc || deleting}
+                className="mr-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-200 text-xs font-medium text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Hapus PC</span>
+              </button>
               <button
                 onClick={() => onDispatchSingleCommand(pcId, 'run_script')}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-200 text-xs font-medium text-zinc-800 hover:bg-zinc-50"

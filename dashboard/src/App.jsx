@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
@@ -12,12 +12,13 @@ import ScheduleView from './components/ScheduleView';
 import AuditLogView from './components/AuditLogView';
 import LoginPage from './components/LoginPage';
 import { sectionContainerVariant, itemFadeUpVariant } from './motion';
-import { api, getStoredToken, getStoredUser } from './api';
+import { api, getStoredUser, hasValidSession, DEMO_MODE } from './api';
+import { buildCommandPayload } from './commands';
 import { CheckCircle2, AlertCircle } from 'lucide-react';
 
 export default function App() {
   const [user, setUser] = useState(getStoredUser());
-  const [isAuthenticated, setIsAuthenticated] = useState(!!getStoredToken());
+  const [isAuthenticated, setIsAuthenticated] = useState(hasValidSession());
   const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'devices' | 'schedules' | 'logs' | 'lab_detail'
   
   // Labs & PCs State
@@ -34,30 +35,39 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [isAutoSync, setIsAutoSync] = useState(true);
+  const [dataError, setDataError] = useState(null);
+  const [syncError, setSyncError] = useState(null);
+  const selectedLabRef = useRef(selectedLabId);
+  const toastTimerRef = useRef(null);
+  selectedLabRef.current = selectedLabId;
 
-  // Initialize data
+  useEffect(() => () => clearTimeout(toastTimerRef.current), []);
+
   useEffect(() => {
-    fetchInitialData();
-
-    // Listen for 401 unauthorized
     const handleUnauthorized = () => {
       setIsAuthenticated(false);
       setUser(null);
+      setLabs([]);
+      setPcs([]);
+      setSelectedPcIds([]);
     };
     window.addEventListener('simlab:unauthorized', handleUnauthorized);
     return () => window.removeEventListener('simlab:unauthorized', handleUnauthorized);
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) fetchInitialData();
   }, [isAuthenticated]);
 
   // When selectedLabId changes or on activeTab change, load PCs
   useEffect(() => {
-    if (selectedLabId) {
-      fetchLabPcs(selectedLabId);
-    }
-  }, [selectedLabId]);
+    setSelectedPcIds([]);
+    if (isAuthenticated && selectedLabId) fetchLabPcs(selectedLabId);
+  }, [selectedLabId, isAuthenticated]);
 
   // Smart polling interval for live real-time sync (Phase 2)
   useEffect(() => {
-    if (!isAutoSync) return;
+    if (!isAutoSync || !isAuthenticated) return;
 
     const interval = setInterval(() => {
       // Pause polling if tab is in background or hidden
@@ -66,38 +76,40 @@ export default function App() {
       if (selectedLabId) {
         api.getLabPcs(selectedLabId)
           .then((res) => {
-            if (res?.data) {
+            if (res?.data && selectedLabRef.current === selectedLabId) {
               setPcs(res.data);
+              setSyncError(null);
             }
           })
-          .catch(() => {});
+          .catch((err) => setSyncError(err.message || 'Sinkronisasi PC gagal.'));
       }
 
       api.getUnreadCount()
         .then((res) => {
-          if (res?.unread_count !== undefined) setUnreadCount(res.unread_count);
+          if (res?.count !== undefined) setUnreadCount(res.count);
         })
         .catch(() => {});
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [isAutoSync, selectedLabId]);
+  }, [isAutoSync, selectedLabId, isAuthenticated]);
 
   const fetchInitialData = async () => {
     try {
       const [labsRes, notifRes, unreadRes, meRes] = await Promise.all([
-        api.getLabs().catch(() => null),
-        api.getNotifications().catch(() => null),
-        api.getUnreadCount().catch(() => null),
-        api.getMe().catch(() => null),
+        api.getLabs(),
+        api.getNotifications(),
+        api.getUnreadCount(),
+        api.getMe(),
       ]);
 
       if (labsRes?.data) setLabs(labsRes.data);
       if (notifRes?.data) setNotifications(notifRes.data);
-      if (unreadRes?.unread_count !== undefined) setUnreadCount(unreadRes.unread_count);
-      if (meRes) setUser(meRes);
+      if (unreadRes?.count !== undefined) setUnreadCount(unreadRes.count);
+      if (meRes) setUser(meRes.data || meRes);
+      setDataError(null);
     } catch (err) {
-      console.error('Error fetching initial data:', err);
+      setDataError(err.message || 'Gagal memuat data dashboard.');
     }
   };
 
@@ -109,13 +121,14 @@ export default function App() {
         setSelectedPcIds([]);
       }
     } catch (err) {
-      console.error('Error fetching PCs:', err);
+      if (selectedLabRef.current === labId) setDataError(err.message || 'Gagal memuat daftar PC.');
     }
   };
 
   const showToast = (text, type = 'success') => {
     setToastMessage({ text, type });
-    setTimeout(() => setToastMessage(null), 3000);
+    clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = setTimeout(() => setToastMessage(null), 3000);
   };
 
   // Selection handlers
@@ -140,22 +153,30 @@ export default function App() {
         isOpen: true,
         targetType: selectedPcIds.length > 0 ? 'pc' : 'lab',
         targetId: selectedPcIds.length > 0 ? selectedPcIds[0] : selectedLabId,
+        pcIds: selectedPcIds.length > 0 ? selectedPcIds : undefined,
         action: actionId,
       });
       return;
     }
 
     // Direct command dispatch
-    const payload = {
-      action: actionId,
-      target_type: selectedPcIds.length > 0 ? 'pc' : 'lab',
-      target_id: selectedPcIds.length > 0 ? selectedPcIds[0] : selectedLabId,
-      reason: 'Aksi cepat tombol toolbar',
-    };
+    let payload;
+    try {
+      payload = buildCommandPayload({
+        action: actionId,
+        targetType: selectedPcIds.length > 0 ? 'pc' : 'lab',
+        targetId: selectedPcIds.length > 0 ? selectedPcIds[0] : selectedLabId,
+        pcIds: selectedPcIds.length > 0 ? selectedPcIds : undefined,
+        reason: 'Aksi cepat tombol toolbar',
+      });
+    } catch (err) {
+      showToast(err.message, 'error');
+      return;
+    }
 
     api.dispatchCommand(payload)
       .then(() => {
-        showToast(`Perintah ${actionId} berhasil disiarkan!`);
+        showToast(`Perintah ${actionId} diterima server; menunggu ACK node.`);
         fetchLabPcs(selectedLabId);
       })
       .catch((err) => {
@@ -182,13 +203,22 @@ export default function App() {
       reason: 'Aksi per PC dari modal detail',
     })
       .then(() => {
-        showToast(`Perintah ${actionId} pada PC #${pcId} terkirim.`);
+        showToast(`Perintah ${actionId} pada PC #${pcId} diterima; menunggu ACK.`);
         setActivePcDetailId(null);
         fetchLabPcs(selectedLabId);
       })
       .catch((err) => {
         showToast(err.message || 'Gagal eksekusi', 'error');
       });
+  };
+
+  const handleDeletePc = async (pcId) => {
+    const res = await api.deletePc(pcId);
+    setActivePcDetailId(null);
+    setSelectedPcIds((prev) => prev.filter((id) => id !== pcId));
+    showToast(res?.message || 'PC berhasil dihapus.');
+    fetchLabPcs(selectedLabId);
+    fetchInitialData();
   };
 
   const handleLogout = async () => {
@@ -200,7 +230,6 @@ export default function App() {
   const handleLoginSuccess = (loggedInUser) => {
     setUser(loggedInUser);
     setIsAuthenticated(true);
-    fetchInitialData();
   };
 
   // Calculate totals from live data (no faked fallbacks)
@@ -249,6 +278,16 @@ export default function App() {
         />
 
         <main className="p-8 max-w-7xl w-full mx-auto space-y-8 flex-1">
+          {DEMO_MODE && (
+            <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold">
+              MODE DEMO — data dan operasi tidak terhubung ke backend produksi.
+            </div>
+          )}
+          {(dataError || syncError) && (
+            <div role="alert" className="p-4 rounded-2xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
+              {dataError || syncError}
+            </div>
+          )}
           {/* Toast Alert Banner */}
           {toastMessage && (
             <div className={`p-4 rounded-2xl text-xs font-semibold flex items-center gap-2 shadow-lg ${
@@ -317,6 +356,7 @@ export default function App() {
                       isOpen: true,
                       targetType: 'pc',
                       targetId: selectedPcIds[0],
+                      pcIds: selectedPcIds,
                       action: 'message',
                     });
                   }}
@@ -401,6 +441,7 @@ export default function App() {
         pcId={activePcDetailId}
         onClose={() => setActivePcDetailId(null)}
         onDispatchSingleCommand={handleSinglePcCommand}
+        onDeletePc={handleDeletePc}
       />
 
       {/* Remote Command Modal */}
@@ -410,9 +451,10 @@ export default function App() {
           onClose={() => setCommandModalConfig(null)}
           targetType={commandModalConfig.targetType}
           targetId={commandModalConfig.targetId}
+          pcIds={commandModalConfig.pcIds}
           initialAction={commandModalConfig.action}
           onSuccess={() => {
-            showToast('Perintah berhasil didisposisikan ke broker MQTT');
+            showToast('Perintah diterima server; menunggu hasil ACK node.');
             fetchLabPcs(selectedLabId);
           }}
         />

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { X, Send, Terminal, AlertCircle, CheckCircle2, ChevronDown, Trash2, RotateCcw } from 'lucide-react';
 import { api } from '../api';
+import { buildCommandPayload } from '../commands';
 
 const SCRIPT_TEMPLATES = [
   // --- KATEGORI 1: APLIKASI CBT & UJIAN ---
@@ -228,7 +229,8 @@ export default function CommandModal({
   isOpen, 
   onClose, 
   targetType = 'lab', 
-  targetId = 1, 
+  targetId = 1,
+  pcIds,
   initialAction = 'run_script',
   onSuccess 
 }) {
@@ -241,6 +243,9 @@ export default function CommandModal({
   const [delay, setDelay] = useState(0);
   const [loading, setLoading] = useState(false);
   const [statusMsg, setStatusMsg] = useState(null);
+  const successTimerRef = useRef(null);
+
+  useEffect(() => () => clearTimeout(successTimerRef.current), []);
 
   if (!isOpen) return null;
 
@@ -278,10 +283,13 @@ export default function CommandModal({
     setLoading(true);
     setStatusMsg(null);
 
-    const payload = {
+    let payload;
+    try {
+      payload = buildCommandPayload({
       action,
-      target_type: targetType,
-      target_id: targetId,
+      targetType,
+      targetId,
+      pcIds,
       params: {
         delay: parseInt(delay, 10) || 0,
         title: action === 'message' ? title : undefined,
@@ -290,12 +298,11 @@ export default function CommandModal({
         shell: action === 'run_script' ? shell : undefined,
       },
       reason: `Instruksi admin via Dashboard Web Console (${action === 'run_script' ? currentTemplate.name : action})`,
-    };
+    });
 
-    try {
       await api.dispatchCommand(payload);
-      setStatusMsg({ type: 'success', text: 'Perintah berhasil dikirim ke antrean node workstation!' });
-      setTimeout(() => {
+      setStatusMsg({ type: 'success', text: 'Perintah diterima server; menunggu ACK dari node workstation.' });
+      successTimerRef.current = setTimeout(() => {
         if (onSuccess) onSuccess();
         onClose();
       }, 1000);

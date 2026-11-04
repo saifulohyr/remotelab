@@ -8,7 +8,7 @@ mqtt:
   broker_host: "192.168.1.100"  # Change to your MQTT broker IP
   broker_port: 8883
   username: "agent-lab1-pc01"   # Unique per agent
-  password: "changeme"          # Unique per agent
+  password: "CHANGE_ME"  # Set locally from a private secret store; never commit credentials.
   use_tls: true
   ca_cert_path: ""              # Path to CA certificate for TLS validation
   keep_alive: 10                # seconds (LWT triggers after 1.5x this)

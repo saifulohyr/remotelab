@@ -56,7 +56,15 @@ func (p *program) Start(s service.Service) error {
 
 type telemetryResponse struct {
 	Status   string            `json:"status"`
+	PCID     int               `json:"pc_id"`
 	Commands []command.Command `json:"commands,omitempty"`
+}
+
+func (p *program) setHTTPHeaders(req *http.Request) {
+	req.Header.Set("Content-Type", "application/json")
+	if p.cfg.Server.Token != "" {
+		req.Header.Set("X-Agent-Token", p.cfg.Server.Token)
+	}
 }
 
 func (p *program) sendHTTPTelemetry(data telemetry.Data) {
@@ -70,13 +78,16 @@ func (p *program) sendHTTPTelemetry(data telemetry.Data) {
 	hostname, _ := os.Hostname()
 
 	payload := map[string]interface{}{
-		"lab_id":      p.cfg.Lab.LabID,
-		"pc_id":       p.cfg.Lab.PCID,
-		"hostname":    hostname,
-		"status":      "online",
-		"version":     p.cfg.Agent.Version,
-		"ip_address":  data.IPAddress,
-		"mac_address": data.MACAddress,
+		"sample_id":      data.SampleID,
+		"lab_id":         p.cfg.Lab.LabID,
+		"pc_id":          p.cfg.Lab.PCID,
+		"hostname":       hostname,
+		"status":         "online",
+		"version":        p.cfg.Agent.Version,
+		"ip_address":     data.IPAddress,
+		"mac_address":    data.MACAddress,
+		"timestamp":      data.Timestamp,
+		"uptime_seconds": data.UptimeSeconds,
 		"metrics": map[string]interface{}{
 			"cpu_percent":  data.CPUPercent,
 			"ram_percent":  data.RAMPercent,
@@ -93,13 +104,18 @@ func (p *program) sendHTTPTelemetry(data telemetry.Data) {
 	if err != nil {
 		return
 	}
-	req.Header.Set("Content-Type", "application/json")
+	p.setHTTPHeaders(req)
 
 	resp, err := p.httpClient.Do(req)
 	if err != nil {
 		return
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		log.Printf("[Telemetry] Server menolak telemetry: HTTP %d", resp.StatusCode)
+		return
+	}
 
 	respBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -123,21 +139,26 @@ func (p *program) sendHTTPTelemetry(data telemetry.Data) {
 		// Send ACK back via HTTP
 		ackPayload := map[string]interface{}{
 			"command_id": ack.CommandID,
-			"pc_id":      p.cfg.Lab.PCID,
+			"pc_id":      tr.PCID,
 			"hostname":   hostname,
 			"status":     ack.Status,
 			"message":    ack.Message,
 			"output":     ack.Output,
+			"exit_code":  ack.ExitCode,
 		}
 		ackBody, err := json.Marshal(ackPayload)
 		if err == nil {
 			ackReq, err := http.NewRequest("POST", ackURL, bytes.NewBuffer(ackBody))
 			if err == nil {
-				ackReq.Header.Set("Content-Type", "application/json")
+				p.setHTTPHeaders(ackReq)
 				ackResp, err := p.httpClient.Do(ackReq)
 				if err == nil {
 					ackResp.Body.Close()
-					log.Printf("[Command] ACK berhasil dikirim ke server: command_id=%s status=%s", ack.CommandID, ack.Status)
+					if ackResp.StatusCode >= 200 && ackResp.StatusCode < 300 {
+						log.Printf("[Command] ACK berhasil dikirim ke server: command_id=%s status=%s", ack.CommandID, ack.Status)
+					} else {
+						log.Printf("[Command] Server menolak ACK: HTTP %d", ackResp.StatusCode)
+					}
 				} else {
 					log.Printf("[Command] Gagal kirim ACK ke server: %v", err)
 				}
@@ -195,7 +216,9 @@ func (p *program) run() {
 
 	// Send initial telemetry immediately
 	initialData := telemetry.Collect(p.cfg.Agent.Version)
-	p.mqttClient.PublishTelemetry(initialData)
+	if p.mqttClient.IsConnected() {
+		p.mqttClient.PublishTelemetry(initialData)
+	}
 	go p.sendHTTPTelemetry(initialData)
 
 	for {
@@ -235,8 +258,8 @@ func main() {
 		DisplayName: "SIMLab Agent",
 		Description: "SIMLab PC Monitoring and Remote Control Agent",
 		Option: service.KeyValue{
-			"StartType":       "automatic",
-			"OnFailure":       "restart",
+			"StartType":        "automatic",
+			"OnFailure":        "restart",
 			"OnFailureDelayMs": "5000",
 		},
 	}

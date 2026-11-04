@@ -45,8 +45,16 @@ return [
         'ca_cert_path' => env('MQTT_CA_CERT_PATH', ''),
     ],
 
+    'simlab' => [
+        'timezone' => env('SIMLAB_TIMEZONE', 'Asia/Jakarta'),
+    ],
+
+    'agent' => [
+        'token' => env('AGENT_API_TOKEN'),
+    ],
+
     'internal' => [
-        'token' => env('INTERNAL_API_TOKEN', 'change-me-in-production'),
+        'token' => env('INTERNAL_API_TOKEN'),
     ],
 
 ];

@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\LabController;
 use App\Http\Controllers\Api\NotificationController;
 use App\Http\Controllers\Api\PcController;
 use App\Http\Controllers\Api\ScheduleController;
+use App\Http\Controllers\Api\TelemetryIngestController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -17,8 +18,10 @@ use Illuminate\Support\Facades\Route;
 
 // ── Public (unauthenticated) ──────────────────────────────
 Route::post('/login', [AuthController::class, 'login']);
-Route::post('/telemetry', [\App\Http\Controllers\Api\TelemetryIngestController::class, 'ingest']);
-Route::post('/commands/ack', [\App\Http\Controllers\Api\TelemetryIngestController::class, 'ack']);
+Route::middleware('agent.token')->group(function () {
+    Route::post('/telemetry', [TelemetryIngestController::class, 'ingest']);
+    Route::post('/commands/ack', [TelemetryIngestController::class, 'ack']);
+});
 
 // ── Internal (worker → Laravel, token-protected) ──────────
 Route::post('/internal/broadcast', [InternalBroadcastController::class, 'handle']);
@@ -41,6 +44,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/pcs/{pc}', [PcController::class, 'show']);
     Route::get('/pcs/{pc}/metrics', [PcController::class, 'metrics']);
     Route::get('/pcs/{pc}/events', [PcController::class, 'events']);
+    Route::delete('/pcs/{pc}', [PcController::class, 'destroy']);
 
     // Commands
     Route::get('/commands', [CommandController::class, 'index']);

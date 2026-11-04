@@ -33,6 +33,10 @@ type pcCache struct {
 	cache map[string]int // "lab_id:pc_id" → db id
 }
 
+type eventNotifier interface {
+	SendAsync(event notify.Event)
+}
+
 func newPCCache() *pcCache {
 	return &pcCache{cache: make(map[string]int)}
 }
@@ -141,7 +145,7 @@ func main() {
 
 // handleMessage routes incoming MQTT messages to the appropriate handler.
 func handleMessage(msg mqtt.Message, cache *pcCache, db *sql.DB,
-	bi *ingest.BatchIngestor, su *ingest.StatusUpdater, notifier *notify.Notifier) {
+	bi *ingest.BatchIngestor, su *ingest.StatusUpdater, notifier eventNotifier) {
 
 	topic := msg.Topic()
 	parts := strings.Split(topic, "/")
@@ -155,8 +159,14 @@ func handleMessage(msg mqtt.Message, cache *pcCache, db *sql.DB,
 	pcID := strings.ToLower(parts[2])
 	msgType := strings.ToLower(parts[3])
 
-	// Skip relay messages for now (handled separately)
+	// Relay topics do not identify a PC and must not trigger a PC lookup.
 	if pcID == "relay" {
+		switch msgType {
+		case "ack":
+			handleRelayAck(msg.Payload(), labID, su, notifier)
+		case "status":
+			handleRelayStatus(msg.Payload(), labID, notifier)
+		}
 		return
 	}
 
@@ -188,7 +198,7 @@ func handleMessage(msg mqtt.Message, cache *pcCache, db *sql.DB,
 }
 
 func handleTelemetry(payload []byte, pcID int, labID string,
-	bi *ingest.BatchIngestor, su *ingest.StatusUpdater, notifier *notify.Notifier) {
+	bi *ingest.BatchIngestor, su *ingest.StatusUpdater, notifier eventNotifier) {
 
 	msg, err := ingest.ParseTelemetry(payload)
 	if err != nil {
@@ -212,7 +222,7 @@ func handleTelemetry(payload []byte, pcID int, labID string,
 }
 
 func handleStatus(payload []byte, pcID int, labID, pcSlug string,
-	su *ingest.StatusUpdater, notifier *notify.Notifier) {
+	su *ingest.StatusUpdater, notifier eventNotifier) {
 
 	msg, err := ingest.ParseStatus(payload)
 	if err != nil {
@@ -231,10 +241,10 @@ func handleStatus(payload []byte, pcID int, labID, pcSlug string,
 		Type:    "pc_status_updated",
 		Channel: "lab." + labID,
 		Data: map[string]interface{}{
-			"pc_id":  pcID,
+			"pc_id":   pcID,
 			"pc_slug": pcSlug,
-			"status": msg.Status,
-			"reason": msg.Reason,
+			"status":  msg.Status,
+			"reason":  msg.Reason,
 		},
 	})
 
@@ -253,7 +263,7 @@ func handleStatus(payload []byte, pcID int, labID, pcSlug string,
 }
 
 func handleAck(payload []byte, pcID int, labID string,
-	su *ingest.StatusUpdater, notifier *notify.Notifier) {
+	su *ingest.StatusUpdater, notifier eventNotifier) {
 
 	msg, err := ingest.ParseAck(payload)
 	if err != nil {
@@ -265,6 +275,7 @@ func handleAck(payload []byte, pcID int, labID string,
 
 	if err := su.ProcessAck(pcID, *msg); err != nil {
 		log.Printf("[Worker] Failed to process ack: %v", err)
+		return
 	}
 
 	notifier.SendAsync(notify.Event{
@@ -274,7 +285,42 @@ func handleAck(payload []byte, pcID int, labID string,
 			"pc_id":      pcID,
 			"command_id": msg.CommandID,
 			"status":     msg.Status,
+			"output":     msg.Output,
+			"exit_code":  msg.ExitCode,
 		},
+	})
+}
+
+func handleRelayAck(payload []byte, labID string, su *ingest.StatusUpdater, notifier eventNotifier) {
+	msg, err := ingest.ParseRelayAck(payload)
+	if err != nil {
+		log.Printf("[Worker] Failed to parse relay ack: %v", err)
+		return
+	}
+
+	if err := su.ProcessRelayAck(labID, *msg); err != nil {
+		log.Printf("[Worker] Failed to process relay ack: %v", err)
+		return
+	}
+
+	notifier.SendAsync(notify.Event{
+		Type:    "command_status_updated",
+		Channel: "lab." + labID,
+		Data:    msg,
+	})
+}
+
+func handleRelayStatus(payload []byte, labID string, notifier eventNotifier) {
+	msg, err := ingest.ParseRelayStatus(payload)
+	if err != nil {
+		log.Printf("[Worker] Failed to parse relay status: %v", err)
+		return
+	}
+
+	notifier.SendAsync(notify.Event{
+		Type:    "relay_status_updated",
+		Channel: "lab." + labID,
+		Data:    msg,
 	})
 }
 
@@ -284,9 +330,9 @@ func offlineDetectionLoop(db *sql.DB, thresholdSec int, notifier *notify.Notifie
 	defer ticker.Stop()
 
 	for range ticker.C {
-		query := `UPDATE pcs SET status = 'offline_abnormal', updated_at = NOW()
+		query := `UPDATE pcs SET status = 'offline_abnormal', updated_at = UTC_TIMESTAMP()
 		          WHERE status IN ('online', 'booting') 
-		          AND last_seen_at < DATE_SUB(NOW(), INTERVAL ? SECOND)`
+		          AND last_seen_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL ? SECOND)`
 		result, err := db.Exec(query, thresholdSec)
 		if err != nil {
 			log.Printf("[Worker] Offline detection failed: %v", err)
@@ -298,8 +344,8 @@ func offlineDetectionLoop(db *sql.DB, thresholdSec int, notifier *notify.Notifie
 
 			// Record power events for affected PCs
 			db.Exec(`INSERT INTO power_events (pc_id, event_type, source, created_at)
-			         SELECT id, 'shutdown_abnormal', 'server_detection', NOW() FROM pcs
-			         WHERE status = 'offline_abnormal' AND updated_at >= DATE_SUB(NOW(), INTERVAL 2 SECOND)`)
+			         SELECT id, 'shutdown_abnormal', 'server_detection', UTC_TIMESTAMP() FROM pcs
+			         WHERE status = 'offline_abnormal' AND updated_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 2 SECOND)`)
 		}
 	}
 }

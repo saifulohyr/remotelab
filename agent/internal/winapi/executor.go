@@ -138,6 +138,10 @@ func (e *SystemExecutor) RunScript(script, shell string) (string, error) {
 	}
 
 	outputBytes, err := cmd.CombinedOutput()
+	const maxOutputBytes = 48 * 1024
+	if len(outputBytes) > maxOutputBytes {
+		outputBytes = append(outputBytes[:maxOutputBytes], []byte("\n[output truncated]")...)
+	}
 	output := string(outputBytes)
 	if ctx.Err() == context.DeadlineExceeded {
 		return output, fmt.Errorf("eksekusi timeout (melebihi batas waktu)")

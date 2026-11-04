@@ -54,9 +54,14 @@ class NotificationController extends Controller
     /**
      * POST /api/notifications/{notification}/read — Mark notification as read.
      */
-    public function markRead(int $notification): JsonResponse
+    public function markRead(Request $request, int $notification): JsonResponse
     {
-        Notification::where('id', $notification)->update(['is_read' => true]);
+        $model = Notification::findOrFail($notification);
+        if (! $request->user()->hasLabAccess($model->lab_id)) {
+            return response()->json(['message' => 'Akses ditolak.'], 403);
+        }
+
+        $model->update(['is_read' => true]);
 
         return response()->json(['message' => 'Notifikasi telah dibaca.']);
     }

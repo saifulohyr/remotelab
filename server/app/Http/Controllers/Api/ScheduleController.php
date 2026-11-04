@@ -83,8 +83,8 @@ class ScheduleController extends Controller
         $request->validate([
             'exception_date' => 'required|date',
             'type' => 'required|in:skip,override',
-            'wake_time' => 'nullable|date_format:H:i',
-            'shutdown_time' => 'nullable|date_format:H:i',
+            'wake_time' => 'nullable|date_format:H:i|required_if:type,override',
+            'shutdown_time' => 'nullable|date_format:H:i|required_if:type,override',
             'reason' => 'nullable|string|max:500',
         ]);
 
