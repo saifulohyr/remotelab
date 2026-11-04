@@ -867,10 +867,10 @@
                                  title="Klik untuk membuka panduan instalasi SIMLab Agent">
 
                             <div class="d-flex justify-content-between align-items-start mb-3">
-                                <div class="service-icon mb-0" style="background: rgba(16, 185, 129, 0.12); color: #059669;">
+                                <div class="service-icon mb-0" style="background: var(--blue-soft); color: var(--blue);">
                                     <i class="bi bi-cpu"></i>
                                 </div>
-                                <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle px-2 py-1 small">
+                                <span class="badge rounded-pill style="background:var(--blue-soft);color:var(--blue);border:1px solid #c4d9f7;" px-2 py-1 small">
                                     <i class="bi bi-book me-1"></i>Klik Panduan
                                 </span>
                             </div>
@@ -1024,7 +1024,7 @@
 
                 <div class="modal-header border-bottom pb-3">
                     <div class="d-flex align-items-center gap-2">
-                        <div class="service-icon mb-0" style="width: 44px; height: 44px; font-size: 1.3rem; background: rgba(16, 185, 129, 0.12); color: #059669; border-radius: 10px;">
+                        <div class="service-icon mb-0" style="width: 44px; height: 44px; font-size: 1.3rem; background: var(--blue-soft); color: var(--blue); border-radius: 10px;">
                             <i class="bi bi-cpu"></i>
                         </div>
                         <div>
@@ -1092,7 +1092,7 @@
                                         Unduh file <code>simlab-agent-windows.zip</code>, lalu ekstrak seluruh isinya ke folder yang aman (disarankan di <code>C:\simlab-agent\</code>).
                                     </p>
                                     <div class="ms-4">
-                                        <a href="/downloads/simlab-agent-windows.zip" download class="btn btn-sm btn-outline-success">
+                                        <a href="/downloads/simlab-agent-windows.zip" download class="btn btn-sm btn-primary" style="background:#1a73e8;color:#fff;">
                                             <i class="bi bi-download me-1"></i> Unduh simlab-agent-windows.zip
                                         </a>
                                     </div>
@@ -1126,7 +1126,7 @@
                                     <p class="text-secondary small mb-2 ms-4">
                                         Klik ganda <code>simlab-agent.exe</code>. Jendela akan menampilkan status koneksi:
                                     </p>
-                                    <div class="ms-4 bg-dark text-success p-2 rounded font-monospace small">
+                                    <div class="ms-4 bg-dark text-info p-2 rounded font-monospace small">
                                         [Agent] Connected to server: https://simlab.labmuma.xyz<br>
                                         [Telemetry] Ingest success: 200 OK | Hostname: RPL1-PC01 | MAC: 00:1A:2B:3C:4D:5E
                                     </div>
@@ -1162,19 +1162,19 @@
                             </p>
                             <div class="bg-dark text-light p-3 rounded-3 font-monospace small">
 <span class="text-warning">server</span>:
-  <span class="text-info">url</span>: <span class="text-success">"https://simlab.labmuma.xyz"</span>
+  <span class="text-info">url</span>: <span class="text-warning">"https://simlab.labmuma.xyz"</span>
 
 <span class="text-warning">mqtt</span>:
-  <span class="text-info">broker_host</span>: <span class="text-success">"simlab.labmuma.xyz"</span>
+  <span class="text-info">broker_host</span>: <span class="text-primary">"simlab.labmuma.xyz"</span>
   <span class="text-info">broker_port</span>: <span class="text-primary">8883</span>
   <span class="text-info">use_tls</span>: <span class="text-primary">true</span>
 
 <span class="text-warning">lab</span>:
-  <span class="text-info">lab_id</span>: <span class="text-success">"lab-rpl-1"</span>      <span class="text-muted"># ID ruangan lab</span>
-  <span class="text-info">pc_id</span>: <span class="text-success">"auto"</span>            <span class="text-muted"># auto / nama PC spesifik</span>
+  <span class="text-info">lab_id</span>: <span class="text-warning">"lab-rpl-1"</span>      <span class="text-muted"># ID ruangan lab</span>
+  <span class="text-info">pc_id</span>: <span class="text-warning">"auto"</span>            <span class="text-muted"># auto / nama PC spesifik</span>
 
 <span class="text-warning">agent</span>:
-  <span class="text-info">version</span>: <span class="text-success">"1.0.0"</span>
+  <span class="text-info">version</span>: <span class="text-warning">"1.0.0"</span>
   <span class="text-info">telemetry_interval_sec</span>: <span class="text-primary">15</span>
                             </div>
 
@@ -1273,7 +1273,7 @@ sudo systemctl enable simlab-agent
                         <a
                             href="/downloads/simlab-agent-windows.zip"
                             download
-                            class="btn btn-sm btn-success"
+                            class="btn btn-sm btn-primary" style="background:#1a73e8;color:#fff;"
                         >
                             <i class="bi bi-windows me-1"></i> Unduh Windows (.zip)
                         </a>
