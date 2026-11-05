@@ -86,14 +86,25 @@ class TelemetryIngestController extends Controller
             ->first();
 
         if (! $pc) {
-            Log::warning('Telemetry rejected: unknown pc', [
-                'lab_id' => $lab->slug,
-                'pc_id' => $validated['pc_id'],
-                'hostname' => $validated['hostname'] ?? null,
-                'ip_address' => $request->ip(),
+            // Auto-register PC baru yang belum terdaftar
+            $mac = $validated['mac_address'] ?? '00:00:00:00:00:00';
+            $pc = Pc::create([
+                'lab_id'      => $lab->id,
+                'hostname'    => $hostname,
+                'slug'        => $pcSlug,
+                'mac_address' => $mac,
+                'ip_address'  => $validated['ip_address'] ?? null,
+                'status'      => 'online',
+                'wol_enabled' => 1,
+                'agent_version' => $validated['agent_version'] ?? $validated['version'] ?? null,
+                'last_seen_at'  => now(),
             ]);
 
-            return response()->json(['message' => 'PC tidak dikenal di lab ini.'], 404);
+            Log::info('Telemetry: PC baru otomatis terdaftar', [
+                'lab'      => $lab->slug,
+                'hostname' => $hostname,
+                'pc_id'    => $pc->id,
+            ]);
         }
 
         $oldStatus = $pc->status;
