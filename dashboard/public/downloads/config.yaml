@@ -23,6 +23,7 @@ mqtt:
 lab:
   # Pilihan kode ruangan:
   # lab-rpl-1, lab-rpl-2, lab-rpl-3, lab-rpl-4, lab-bahasa, lab-rps
+  # PENTING: gunakan kode di atas, bukan "lab1"/"pc01" dari config lama.
   lab_id: "lab-rpl-1"
 
   # Pembeda ID:

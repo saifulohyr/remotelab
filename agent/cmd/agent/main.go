@@ -113,7 +113,8 @@ func (p *program) sendHTTPTelemetry(data telemetry.Data) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		log.Printf("[Telemetry] Server menolak telemetry: HTTP %d", resp.StatusCode)
+		respBody, _ := io.ReadAll(io.LimitReader(resp.Body, 1024))
+		log.Printf("[Telemetry] Server menolak telemetry: HTTP %d: %s (lab_id=%s pc_id=%s)", resp.StatusCode, strings.TrimSpace(string(respBody)), p.cfg.Lab.LabID, p.cfg.Lab.PCID)
 		return
 	}
 
@@ -153,11 +154,12 @@ func (p *program) sendHTTPTelemetry(data telemetry.Data) {
 				p.setHTTPHeaders(ackReq)
 				ackResp, err := p.httpClient.Do(ackReq)
 				if err == nil {
+					ackRespBody, _ := io.ReadAll(io.LimitReader(ackResp.Body, 1024))
 					ackResp.Body.Close()
 					if ackResp.StatusCode >= 200 && ackResp.StatusCode < 300 {
 						log.Printf("[Command] ACK berhasil dikirim ke server: command_id=%s status=%s", ack.CommandID, ack.Status)
 					} else {
-						log.Printf("[Command] Server menolak ACK: HTTP %d", ackResp.StatusCode)
+						log.Printf("[Command] Server menolak ACK: HTTP %d: %s", ackResp.StatusCode, strings.TrimSpace(string(ackRespBody)))
 					}
 				} else {
 					log.Printf("[Command] Gagal kirim ACK ke server: %v", err)
@@ -178,6 +180,9 @@ func (p *program) run() {
 	p.httpClient = &http.Client{Timeout: 10 * time.Second}
 
 	log.Println("[Agent] Starting SIMLab Agent v" + p.cfg.Agent.Version)
+	hostname, _ := os.Hostname()
+	log.Printf("[Agent] Identity: lab_id=%s pc_id=%s hostname=%s config=%s", p.cfg.Lab.LabID, p.cfg.Lab.PCID, hostname, realConfigPath)
+	log.Printf("[Agent] Server: %s", p.cfg.Server.URL)
 
 	// Initialize MQTT client
 	client, err := mqttclient.NewClient(p.cfg)
