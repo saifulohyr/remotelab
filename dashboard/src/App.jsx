@@ -398,12 +398,12 @@ export default function App() {
                 onToggleSelectPc={handleToggleSelectPc}
                 onSelectAllPcs={handleSelectAllPcs}
                 onClearSelectPcs={handleClearSelectPcs}
-                onOpenCommandModal={() => {
+                onOpenCommandModal={(preset) => {
                   setCommandModalConfig({
                     isOpen: true,
-                    targetType: 'pc',
-                    targetId: selectedPcIds[0],
-                    action: 'message',
+                    targetType: preset?.target_type || (selectedPcIds.length > 0 ? 'pc' : 'lab'),
+                    targetId: preset?.target_id || (selectedPcIds.length > 0 ? selectedPcIds[0] : selectedLabId),
+                    action: preset?.action || (selectedPcIds.length > 0 ? 'message' : 'wake'),
                   });
                 }}
               />

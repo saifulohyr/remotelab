@@ -159,6 +159,16 @@ export default function LabMatrix({
         )}
       </div>
 
+      {/* Wake‑All button for selected lab */}
+      {selectedLabId && (
+        <button
+          onClick={() => onOpenCommandModal({action: 'wake', target_type: 'lab', target_id: selectedLabId})}
+          className="px-3 py-1.5 rounded bg-blue-600 text-white text-[11px] font-mono font-medium hover:bg-blue-700 transition-colors flex items-center gap-1.5"
+        >
+          <Activity className="w-3 h-3" />
+          <span>Wake All Lab</span>
+        </button>
+      )}
       {/* ======================================================== */}
       {/* SECTION 1: KOMPUTER GURU (MASTER RELAY WoL) — TERPISAH   */}
       {/* ======================================================== */}
