@@ -1,18 +1,31 @@
 # SIMLab Agent Configuration
 agent:
   version: "1.0.0"
-  telemetry_interval: 15   # seconds between telemetry reports
+  telemetry_interval: 15   # interval laporan telemetri & polling perintah (detik)
   log_level: "info"
 
-mqtt:
-  broker_host: "192.168.1.100"  # Change to your MQTT broker IP
-  broker_port: 8883
-  username: "agent-lab1-pc01"   # Unique per agent
-  password: "CHANGE_ME"  # Set locally from a private secret store; never commit credentials.
-  use_tls: true
-  ca_cert_path: ""              # Path to CA certificate for TLS validation
-  keep_alive: 10                # seconds (LWT triggers after 1.5x this)
+# Jalur Online Cloud (Internet / Cloudflare Tunnel)
+server:
+  url: "https://simlab.labmuma.xyz"
+  token: "CHANGE_ME"  # Set locally from a private secret store; never commit credentials.
 
+# Jalur MQTT (Direct LAN Lokal)
+mqtt:
+  broker_host: "192.168.1.2"
+  broker_port: 1883
+  username: "agent-lab1-pc01"
+  password: "CHANGE_ME"  # Set locally from a private secret store; never commit credentials.
+  use_tls: false
+  ca_cert_path: ""
+  keep_alive: 10
+
+# Identitas Workstation & Ruangan
 lab:
-  lab_id: "lab1"                # Lab identifier
-  pc_id: "pc01"                 # PC identifier within lab
+  # Pilihan kode ruangan:
+  # lab-rpl-1, lab-rpl-2, lab-rpl-3, lab-rpl-4, lab-bahasa, lab-rps
+  lab_id: "lab-rpl-1"
+
+  # Pembeda ID:
+  # - PC Siswa : isi "auto" (otomatis baca nama komputer Windows)
+  # - PC Guru  : isi "komguru" (otomatis didaftarkan sebagai Master Relay WoL)
+  pc_id: "auto"
