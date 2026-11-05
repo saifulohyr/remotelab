@@ -28,21 +28,21 @@ var AllowedActions = map[string]bool{
 
 // Command represents an incoming command from the server.
 type Command struct {
-	CommandID  string                 `json:"command_id"`
-	Action     string                 `json:"action"`
-	Params     map[string]interface{} `json:"params,omitempty"`
-	IssuedAt   int64                  `json:"issued_at"`
-	TTLSeconds int                    `json:"ttl_seconds"`
+	CommandID  string          `json:"command_id"`
+	Action     string          `json:"action"`
+	Params     json.RawMessage `json:"params,omitempty"`
+	IssuedAt   int64           `json:"issued_at"`
+	TTLSeconds int             `json:"ttl_seconds"`
 }
 
 // UnmarshalJSON accepts both Unix integer and RFC3339 issued_at values.
 func (c *Command) UnmarshalJSON(data []byte) error {
 	var raw struct {
-		CommandID  string                 `json:"command_id"`
-		Action     string                 `json:"action"`
-		Params     map[string]interface{} `json:"params,omitempty"`
-		IssuedAt   json.RawMessage        `json:"issued_at"`
-		TTLSeconds int                    `json:"ttl_seconds"`
+		CommandID  string          `json:"command_id"`
+		Action     string          `json:"action"`
+		Params     json.RawMessage `json:"params,omitempty"`
+		IssuedAt   json.RawMessage `json:"issued_at"`
+		TTLSeconds int             `json:"ttl_seconds"`
 	}
 	if err := json.Unmarshal(data, &raw); err != nil {
 		return err
@@ -290,11 +290,15 @@ func (h *Handler) execute(cmd Command) (string, error) {
 	}
 }
 
-func getParamString(params map[string]interface{}, key, defaultVal string) string {
-	if params == nil {
+func getParamString(params json.RawMessage, key, defaultVal string) string {
+	if len(params) == 0 {
 		return defaultVal
 	}
-	val, ok := params[key]
+	var m map[string]interface{}
+	if err := json.Unmarshal(params, &m); err != nil {
+		return defaultVal
+	}
+	val, ok := m[key]
 	if !ok || val == nil {
 		return defaultVal
 	}
@@ -309,11 +313,15 @@ func getParamString(params map[string]interface{}, key, defaultVal string) strin
 	}
 }
 
-func getParamInt(params map[string]interface{}, key string, defaultVal int) int {
-	if params == nil {
+func getParamInt(params json.RawMessage, key string, defaultVal int) int {
+	if len(params) == 0 {
 		return defaultVal
 	}
-	val, ok := params[key]
+	var m map[string]interface{}
+	if err := json.Unmarshal(params, &m); err != nil {
+		return defaultVal
+	}
+	val, ok := m[key]
 	if !ok || val == nil {
 		return defaultVal
 	}

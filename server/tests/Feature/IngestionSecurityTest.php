@@ -98,6 +98,26 @@ class IngestionSecurityTest extends TestCase
         $this->assertSame(1, Metric::where('pc_id', $this->pc->id)->count());
     }
 
+    public function test_empty_pending_command_params_are_returned_as_json_object(): void
+    {
+        $log = CommandLog::create([
+            'command_id' => (string) Str::uuid7(), 'user_id' => null, 'target_type' => 'pc',
+            'target_id' => $this->pc->id, 'action' => 'shutdown', 'params' => [],
+            'issued_at' => now(), 'ttl_seconds' => 120, 'source' => 'manual',
+        ]);
+        CommandResult::create(['command_log_id' => $log->id, 'pc_id' => $this->pc->id, 'status' => 'pending']);
+
+        $response = $this->postJson('/api/telemetry', [
+            'lab_id' => 'lab1', 'pc_id' => 'LAB1-PC01',
+        ], ['X-Agent-Token' => 'test-agent-token'])->assertOk();
+
+        $payload = json_decode($response->getContent(), false, 512, JSON_THROW_ON_ERROR);
+        $this->assertCount(1, $payload->commands);
+        $this->assertSame('shutdown', $payload->commands[0]->action);
+        $this->assertInstanceOf(\stdClass::class, $payload->commands[0]->params);
+        $this->assertSame('{}', json_encode($payload->commands[0]->params, JSON_THROW_ON_ERROR));
+    }
+
     public function test_legacy_hostname_ack_is_scoped_to_the_exact_command_target(): void
     {
         $log = CommandLog::create([

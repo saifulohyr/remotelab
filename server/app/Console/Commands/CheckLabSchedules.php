@@ -167,7 +167,7 @@ class CheckLabSchedules extends Command
             $success = $mqtt->publish("simlab/{$lab->slug}/{$pc->slug}/command", [
                 'command_id' => $commandLog->command_id,
                 'action' => 'shutdown',
-                'params' => [],
+                'params' => (object) [],
                 'ttl_seconds' => 300,
                 'issued_at' => $issuedAt->timestamp,
             ]);

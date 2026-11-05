@@ -51,6 +51,9 @@ class CommandController extends Controller
         }
 
         $params = $request->input('params', []);
+        // Keep the wire format as an object even when no parameters are set.
+        // json_encode([]) produces [], which older Go agents cannot decode.
+        $agentParams = (object) $params;
         $reason = $request->input('reason');
         $ttlSeconds = $request->input('ttl_seconds', 120);
         $pcs = $this->resolveTargetPCs($user, $targetType, $targetId, $pcIds);
@@ -88,7 +91,7 @@ class CommandController extends Controller
         $mqttPayload = [
             'command_id' => $commandId,
             'action' => $action,
-            'params' => $params,
+            'params' => $agentParams,
             'issued_at' => $issuedAt->timestamp,
             'ttl_seconds' => $ttlSeconds,
         ];

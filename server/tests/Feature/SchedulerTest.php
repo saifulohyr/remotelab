@@ -57,6 +57,7 @@ class SchedulerTest extends TestCase
         $this->assertCount(1, $this->mqtt->messages);
         $this->assertIsInt($this->mqtt->messages[0]['payload']['issued_at']);
         $this->assertSame($log->issued_at->timestamp, $this->mqtt->messages[0]['payload']['issued_at']);
+        $this->assertStringContainsString('"params":{}', json_encode($this->mqtt->messages[0]['payload'], JSON_THROW_ON_ERROR));
     }
 
     public function test_force_wake_creates_per_pc_audit_and_cannot_repeat_same_day(): void

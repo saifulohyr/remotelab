@@ -142,7 +142,9 @@ class TelemetryIngestController extends Controller
             $commandsToSend[] = [
                 'command_id' => $log->command_id,
                 'action' => $log->action,
-                'params' => $log->params ?? [],
+                // Go agents expect a JSON object. PHP encodes an empty array
+                // as [], which makes older agents reject the whole response.
+                'params' => (object) ($log->params ?? []),
                 'issued_at' => $log->issued_at->timestamp,
                 'ttl_seconds' => $log->ttl_seconds,
             ];

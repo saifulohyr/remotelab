@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,6 +12,21 @@ import (
 	"github.com/simlab/agent/internal/config"
 	"github.com/simlab/agent/internal/telemetry"
 )
+
+func TestTelemetryResponseAcceptsObjectAndLegacyArrayParams(t *testing.T) {
+	for _, params := range []string{`{}`, `[]`, `null`, `{"delay":0}`} {
+		t.Run(params, func(t *testing.T) {
+			payload := fmt.Sprintf(`{"status":"ok","pc_id":42,"commands":[{"command_id":"cmd-params","action":"shutdown","params":%s,"issued_at":1800000000,"ttl_seconds":120}]}`, params)
+			var response telemetryResponse
+			if err := json.Unmarshal([]byte(payload), &response); err != nil {
+				t.Fatalf("telemetry response with params=%s: %v", params, err)
+			}
+			if len(response.Commands) != 1 || response.Commands[0].Action != "shutdown" {
+				t.Fatalf("commands were not decoded: %+v", response.Commands)
+			}
+		})
+	}
+}
 
 func TestSendHTTPTelemetryPreservesSampleAndUsesAgentToken(t *testing.T) {
 	const token = "test-agent-token"

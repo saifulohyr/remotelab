@@ -43,11 +43,9 @@ func newTestHandler(executor Executor) *Handler {
 
 func scriptCommand(id string, issuedAt int64) Command {
 	return Command{
-		CommandID: id,
-		Action:    "run_script",
-		Params: map[string]interface{}{
-			"script": "Write-Output test",
-		},
+		CommandID:  id,
+		Action:     "run_script",
+		Params:     json.RawMessage(`{"script":"Write-Output test"}`),
 		IssuedAt:   issuedAt,
 		TTLSeconds: 60,
 	}

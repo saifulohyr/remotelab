@@ -58,6 +58,17 @@ class CommandAuthorizationTest extends TestCase
         $this->assertCount(2, $this->mqtt->messages);
     }
 
+    public function test_empty_command_params_are_published_as_json_object(): void
+    {
+        $this->actingAs($this->admin)->postJson('/api/commands', [
+            'action' => 'shutdown', 'target_type' => 'pc', 'target_id' => $this->pc1->id,
+        ])->assertCreated();
+
+        $payload = $this->mqtt->messages[0]['payload'];
+        $this->assertInstanceOf(\stdClass::class, $payload['params']);
+        $this->assertStringContainsString('"params":{}', json_encode($payload, JSON_THROW_ON_ERROR));
+    }
+
     public function test_operator_cannot_target_cross_lab_pc_or_run_scripts(): void
     {
         $this->actingAs($this->operator)->postJson('/api/commands', [
