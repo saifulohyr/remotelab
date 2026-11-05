@@ -12,6 +12,7 @@ use App\Models\PowerEvent;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class TelemetryIngestController extends Controller
@@ -48,7 +49,31 @@ class TelemetryIngestController extends Controller
         ]);
 
         $lab = Lab::where('slug', Str::slug($validated['lab_id']))->first();
+
+        // Compatibility for agents installed with the old "lab1".."lab4"
+        // config template. Prefer a real slug when one exists.
         if (! $lab) {
+            $aliases = [
+                'lab1' => 'lab-rpl-1', 'lab-1' => 'lab-rpl-1', 'rpl1' => 'lab-rpl-1',
+                'lab2' => 'lab-rpl-2', 'lab-2' => 'lab-rpl-2', 'rpl2' => 'lab-rpl-2',
+                'lab3' => 'lab-rpl-3', 'lab-3' => 'lab-rpl-3', 'rpl3' => 'lab-rpl-3',
+                'lab4' => 'lab-rpl-4', 'lab-4' => 'lab-rpl-4', 'rpl4' => 'lab-rpl-4',
+                'bahasa' => 'lab-bahasa', 'rps' => 'lab-rps',
+            ];
+            $alias = $aliases[Str::slug($validated['lab_id'])] ?? null;
+            if ($alias) {
+                $lab = Lab::where('slug', $alias)->first();
+            }
+        }
+
+        if (! $lab) {
+            Log::warning('Telemetry rejected: unknown lab', [
+                'lab_id' => $validated['lab_id'],
+                'pc_id' => $validated['pc_id'],
+                'hostname' => $validated['hostname'] ?? null,
+                'ip_address' => $request->ip(),
+            ]);
+
             return response()->json(['message' => 'Lab tidak dikenal.'], 404);
         }
 
@@ -61,6 +86,13 @@ class TelemetryIngestController extends Controller
             ->first();
 
         if (! $pc) {
+            Log::warning('Telemetry rejected: unknown pc', [
+                'lab_id' => $lab->slug,
+                'pc_id' => $validated['pc_id'],
+                'hostname' => $validated['hostname'] ?? null,
+                'ip_address' => $request->ip(),
+            ]);
+
             return response()->json(['message' => 'PC tidak dikenal di lab ini.'], 404);
         }
 

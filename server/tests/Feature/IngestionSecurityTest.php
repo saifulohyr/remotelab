@@ -98,6 +98,26 @@ class IngestionSecurityTest extends TestCase
         $this->assertSame(1, Metric::where('pc_id', $this->pc->id)->count());
     }
 
+    public function test_legacy_lab_aliases_resolve_to_physical_labs(): void
+    {
+        config(['services.agent.token' => null]);
+        $legacyLab = Lab::create(['name' => 'Lab RPL 3', 'slug' => 'lab-rpl-3']);
+        Pc::create([
+            'lab_id' => $legacyLab->id,
+            'hostname' => 'RPL3-PC01',
+            'slug' => 'rpl3-pc01',
+            'mac_address' => '00:00:00:00:00:03',
+            'status' => 'unknown',
+        ]);
+
+        $this->postJson('/api/telemetry', [
+            'lab_id' => 'lab3',
+            'pc_id' => 'rpl3-pc01',
+            'hostname' => 'RPL3-PC01',
+            'status' => 'online',
+        ])->assertOk()->assertJsonPath('lab_id', $legacyLab->id);
+    }
+
     public function test_empty_pending_command_params_are_returned_as_json_object(): void
     {
         $log = CommandLog::create([
